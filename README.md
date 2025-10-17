@@ -2,6 +2,8 @@
 
 Plataforma profesional de trading consolidado con arquitectura de microservicios.
 
+> **🎯 ¿Primera vez aquí?** Lee la [Guía de Inicio Rápido](./QUICK_START.md) para tener todo funcionando en 5 minutos.
+
 ## 🏗️ Arquitectura
 
 - **Monorepo**: pnpm workspaces + Turbo
@@ -50,7 +52,7 @@ pnpm dev:web    # Terminal 2
 | Servicio | URL | Credenciales |
 |----------|-----|--------------|
 | **Frontend** | http://localhost:3000 | - |
-| **API Docs** | http://localhost:3000/api/docs | - |
+| **API Docs** | http://localhost:4000/api/docs | - |
 | **Grafana** | http://localhost:3001 | admin / admin_guarne_2024 |
 | **Prometheus** | http://localhost:9090 | - |
 
