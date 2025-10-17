@@ -17,16 +17,16 @@
 
 | Servicio | URL | Estado |
 |----------|-----|--------|
-| **API Base** | http://localhost:3000/api/v1 | ✅ |
-| **Swagger Docs** | http://localhost:3000/api/docs | ✅ |
-| **Health Check** | http://localhost:3000/api/health | ✅ |
-| **Metrics** | http://localhost:3000/api/api/v1/metrics | ✅ |
+| **API Base** | http://localhost:4000/api/v1 | ✅ |
+| **Swagger Docs** | http://localhost:4000/api/docs | ✅ |
+| **Health Check** | http://localhost:4000/api/health | ✅ |
+| **Metrics** | http://localhost:4000/api/api/v1/metrics | ✅ |
 
 ### Endpoints Principales
 
 ```bash
 # Registro de Usuario
-POST http://localhost:3000/api/v1/auth/register
+POST http://localhost:4000/api/v1/auth/register
 Content-Type: application/json
 
 {
@@ -38,7 +38,7 @@ Content-Type: application/json
 }
 
 # Login
-POST http://localhost:3000/api/v1/auth/login
+POST http://localhost:4000/api/v1/auth/login
 Content-Type: application/json
 
 {
@@ -47,7 +47,7 @@ Content-Type: application/json
 }
 
 # Obtener Plataformas
-GET http://localhost:3000/api/v1/auth/providers
+GET http://localhost:4000/api/v1/auth/providers
 ```
 
 ### Usuarios de Prueba
@@ -60,7 +60,7 @@ Password: Admin123!@#
 ```
 
 **Usar con:**
-- Swagger UI: http://localhost:3000/api/docs
+- Swagger UI: http://localhost:4000/api/docs
 - Postman
 - curl
 - Frontend Next.js
@@ -86,9 +86,10 @@ Password: [Desconocido - cambiar en BD]
 
 | Página | URL | Estado |
 |--------|-----|--------|
-| **Home** | http://localhost:3003 | ✅ |
-| **Login** | http://localhost:3003/login | ✅ |
-| **Dashboard** | http://localhost:3003/dashboard | 🔒 Requiere Auth |
+| **Home** | http://localhost:3000 | ✅ |
+| **Login** | http://localhost:3000/auth/login | ✅ |
+| **Register** | http://localhost:3000/auth/register | ✅ |
+| **Dashboard** | http://localhost:3000/dashboard | 🔒 Requiere Auth |
 
 ### Credenciales de Acceso
 
@@ -102,8 +103,8 @@ Password: Admin123!@#
 ### Configuración
 
 El frontend se conecta automáticamente a:
-- API: `http://localhost:3000/api/v1`
-- WebSocket: `ws://localhost:3000`
+- API: `http://localhost:4000/api/v1`
+- WebSocket: `ws://localhost:4000`
 
 ---
 
@@ -489,7 +490,7 @@ openssl rand -base64 24
 
 ## 📚 Referencias
 
-- [API Documentation](http://localhost:3000/api/docs)
+- [API Documentation](http://localhost:4000/api/docs)
 - [SECURITY.md](./SECURITY.md) - Documentación de seguridad
 - [CLEAN_ARCHITECTURE.md](./CLEAN_ARCHITECTURE.md) - Arquitectura del proyecto
 - [README.md](../README.md) - Documentación general

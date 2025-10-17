@@ -77,11 +77,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document);
 
-  await app.listen(3000, '0.0.0.0');
-  
+  const port = process.env.PORT || 4000;
+  await app.listen(port, '0.0.0.0');
+
   console.log('╔════════════════════════════════════════╗');
   console.log('║  🚀 Guarne Pro API                    ║');
-  console.log('║  📚 Docs: http://localhost:3000/api/docs');
+  console.log(`║  📚 Docs: http://localhost:${port}/api/docs`);
   console.log('║  🌎 Zona: America/Bogota              ║');
   console.log('║  ⚠️  DEV - Testnet/Paper only          ║');
   console.log('╚════════════════════════════════════════╝');
