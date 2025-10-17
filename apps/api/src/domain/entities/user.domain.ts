@@ -113,6 +113,10 @@ export class UserDomain {
     return this.props.twoFactorEnabled;
   }
 
+  get twoFactorSecret(): string | undefined {
+    return this.props.twoFactorSecret;
+  }
+
   get lastLoginAt(): Date | undefined {
     return this.props.lastLoginAt;
   }

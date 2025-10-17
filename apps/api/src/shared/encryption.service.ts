@@ -86,7 +86,8 @@ export class EncryptionService {
       ].join('.');
 
     } catch (error) {
-      throw new Error(`Encryption failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Encryption failed: ${errorMessage}`);
     }
   }
 
@@ -136,7 +137,8 @@ export class EncryptionService {
       return decrypted;
 
     } catch (error) {
-      throw new Error(`Decryption failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Decryption failed: ${errorMessage}`);
     }
   }
 

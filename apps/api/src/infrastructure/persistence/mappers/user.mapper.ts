@@ -22,13 +22,13 @@ export class UserMapper {
       username: ormEntity.username,
       passwordHash: ormEntity.passwordHash,
       fullName: ormEntity.fullName,
+      isActive: ormEntity.isActive,
       emailVerified: ormEntity.emailVerified,
       twoFactorEnabled: ormEntity.twoFactorEnabled,
       twoFactorSecret: ormEntity.twoFactorSecret,
       lastLoginAt: ormEntity.lastLoginAt,
       createdAt: ormEntity.createdAt,
       updatedAt: ormEntity.updatedAt,
-      deletedAt: ormEntity.deletedAt,
     });
   }
 
@@ -47,13 +47,13 @@ export class UserMapper {
     user.username = domainEntity.username;
     user.passwordHash = domainEntity.passwordHash;
     user.fullName = domainEntity.fullName;
+    user.isActive = domainEntity.isActive;
     user.emailVerified = domainEntity.emailVerified;
     user.twoFactorEnabled = domainEntity.twoFactorEnabled;
     user.twoFactorSecret = domainEntity.twoFactorSecret;
     user.lastLoginAt = domainEntity.lastLoginAt;
     user.createdAt = domainEntity.createdAt;
     user.updatedAt = domainEntity.updatedAt;
-    user.deletedAt = domainEntity.deletedAt;
 
     return user;
   }

@@ -74,13 +74,13 @@ export class TypeOrmUserRepository implements IUserRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Soft delete (updatear deletedAt)
-    await this.userRepository.update(id, { deletedAt: new Date() });
+    // Soft delete (desactivar usuario)
+    await this.userRepository.update(id, { isActive: false });
   }
 
   async findAll(): Promise<UserDomain[]> {
     const userEntities = await this.userRepository.find({
-      where: { deletedAt: null },
+      where: { isActive: true },
       relations: ['userProviders', 'userProviders.provider'],
     });
 
@@ -89,7 +89,7 @@ export class TypeOrmUserRepository implements IUserRepository {
 
   async count(): Promise<number> {
     return this.userRepository.count({
-      where: { deletedAt: null },
+      where: { isActive: true },
     });
   }
 }

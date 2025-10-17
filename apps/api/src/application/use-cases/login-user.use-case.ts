@@ -68,8 +68,8 @@ export class LoginUserUseCase {
       throw new Error('Credenciales inválidas');
     }
 
-    // 3. Verificar que el usuario no esté eliminado
-    if (user.deletedAt) {
+    // 3. Verificar que el usuario esté activo
+    if (!user.isActive) {
       throw new Error('Usuario no disponible');
     }
 
