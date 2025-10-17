@@ -244,12 +244,31 @@ pnpm --filter web test
 | 9090 | Prometheus | Métricas |
 | 3001 | Grafana | Dashboards |
 
+##⚠️ Nota sobre Rendimiento en Desarrollo
+
+**¿La aplicación es lenta al hacer clic en los botones?**
+
+Esto es NORMAL en modo desarrollo (`pnpm dev:web`). Next.js prioriza debugging sobre velocidad.
+
+**Solución para probar a velocidad real**:
+
+```bash
+# Construir versión optimizada
+pnpm --filter web build
+
+# Iniciar en modo producción (10-50x más rápido)
+pnpm --filter web start
+```
+
+Para más detalles, lee [docs/PERFORMANCE.md](./docs/PERFORMANCE.md)
+
 ## Próximos Pasos
 
-1. Lee [CREDENTIALS.md](./docs/CREDENTIALS.md) para más detalles sobre credenciales
-2. Lee [CLEAN_ARCHITECTURE.md](./docs/CLEAN_ARCHITECTURE.md) para entender la arquitectura
-3. Lee [SECURITY.md](./docs/SECURITY.md) para buenas prácticas de seguridad
-4. Explora la API en http://localhost:4000/api/docs
+1. Lee [PERFORMANCE.md](./docs/PERFORMANCE.md) si la app es lenta
+2. Lee [CREDENTIALS.md](./docs/CREDENTIALS.md) para más detalles sobre credenciales
+3. Lee [CLEAN_ARCHITECTURE.md](./docs/CLEAN_ARCHITECTURE.md) para entender la arquitectura
+4. Lee [SECURITY.md](./docs/SECURITY.md) para buenas prácticas de seguridad
+5. Explora la API en http://localhost:4000/api/docs
 
 ## Obtener Ayuda
 
