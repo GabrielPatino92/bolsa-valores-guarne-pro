@@ -1,0 +1,60 @@
+{
+  "name": "bolsa-valores-guarne-pro",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Plataforma profesional de trading consolidado - Arquitectura de microservicios",
+  "author": "Equipo Guarne Pro",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api start:dev",
+    "dev:worker": "pnpm --filter worker dev",
+    "build": "turbo run build",
+    "build:web": "pnpm --filter web build",
+    "build:api": "pnpm --filter api build",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "type-check": "turbo run type-check",
+    "test": "turbo run test",
+    "test:unit": "turbo run test:unit",
+    "test:integration": "turbo run test:integration",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "clean": "turbo run clean && rm -rf node_modules",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "docker:up": "docker compose -f infra/docker-compose.dev.yml up -d",
+    "docker:down": "docker compose -f infra/docker-compose.dev.yml down",
+    "docker:logs": "docker compose -f infra/docker-compose.dev.yml logs -f",
+    "docker:restart": "pnpm docker:down && pnpm docker:up",
+    "db:migrate": "pnpm --filter api migrate",
+    "db:seed": "pnpm --filter api seed",
+    "db:reset": "pnpm --filter api db:reset",
+    "api:docs": "redocly preview-docs ./specs/openapi.yaml",
+    "api:lint": "redocly lint ./specs/openapi.yaml",
+    "generate:sdk": "openapi-generator-cli generate -i ./specs/openapi.yaml -g typescript-fetch -o ./packages/sdk/src/generated",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@redocly/cli": "^1.10.0",
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "husky": "^8.0.3",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.4",
+    "turbo": "^1.12.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,md}": ["prettier --write"]
+  }
+}
