@@ -27,12 +27,7 @@ export class JwtTokenGenerator implements ITokenGenerator {
    */
   generate(payload: TokenPayload): string {
     return this.jwtService.sign(
-      {
-        sub: payload.sub,
-        email: payload.email,
-        username: payload.username,
-        ...payload,
-      },
+      payload,
       {
         expiresIn: this.configService.get<string>('JWT_EXPIRES_IN', '15m'),
       }
@@ -53,7 +48,8 @@ export class JwtTokenGenerator implements ITokenGenerator {
         ...decoded,
       };
     } catch (error) {
-      throw new Error(`Token inválido: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Token inválido: ${errorMessage}`);
     }
   }
 
@@ -106,7 +102,8 @@ export class JwtTokenGenerator implements ITokenGenerator {
         username: decoded.username,
       };
     } catch (error) {
-      throw new Error(`Refresh token inválido: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Refresh token inválido: ${errorMessage}`);
     }
   }
 }
