@@ -26,3 +26,4 @@ docker-compose.override.yml
 .cache/
 temp/
 tmp/
+nul
