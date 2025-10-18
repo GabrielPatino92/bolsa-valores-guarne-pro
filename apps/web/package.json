@@ -12,6 +12,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@guarne/shared": "workspace:*",
     "@tanstack/react-query": "^5.17.19",
     "@tanstack/react-table": "^8.11.8",
     "axios": "^1.6.5",

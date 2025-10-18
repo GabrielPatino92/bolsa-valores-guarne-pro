@@ -2,7 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
-  transpilePackages: ['@guarne/ui', '@guarne/sdk'],
+  transpilePackages: ['@guarne/ui', '@guarne/sdk', '@guarne/shared'],
 
   // Optimizaciones de rendimiento
   compiler: {
