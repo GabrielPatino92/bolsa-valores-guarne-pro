@@ -180,14 +180,18 @@ export function TradingChart({ symbol, timeframe, data, chartType = 'candlestick
   }, [data, chartType]);
 
   return (
-    <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
+    <div className="relative w-full h-full bg-[#1a1d29] rounded-lg overflow-hidden border border-gray-800">
       <div ref={chartContainerRef} className="w-full h-full" />
 
-      {/* Información del símbolo */}
-      <div className="absolute top-4 left-4 bg-gray-800/90 px-4 py-2 rounded-lg backdrop-blur-sm">
-        <div className="text-white font-bold text-lg">{symbol}</div>
-        <div className="text-gray-400 text-sm">
-          {TIMEFRAMES[timeframe]?.label || timeframe}
+      {/* Información del símbolo - estilo TradingView */}
+      <div className="absolute top-3 left-3 flex items-center gap-2">
+        <div className="bg-gray-900/80 px-3 py-1.5 rounded backdrop-blur-sm">
+          <span className="text-white font-bold text-base">{symbol}</span>
+        </div>
+        <div className="bg-gray-900/80 px-3 py-1.5 rounded backdrop-blur-sm">
+          <span className="text-gray-300 text-sm">
+            {TIMEFRAMES[timeframe]?.label || timeframe}
+          </span>
         </div>
       </div>
     </div>

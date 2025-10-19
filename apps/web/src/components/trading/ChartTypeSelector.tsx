@@ -110,17 +110,17 @@ export function ChartTypeSelector({ selected, onChange }: ChartTypeSelectorProps
   }
 
   return (
-    <div className="relative">
+    <div className="relative flex-shrink-0">
       {/* Botón principal */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors border border-gray-700 flex items-center gap-2"
+        className="px-3 sm:px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 transition-colors border border-gray-700 flex items-center gap-2 whitespace-nowrap"
         title={selectedType?.description}
       >
-        <span className="text-lg">{selectedType?.icon}</span>
-        <span className="font-medium hidden sm:inline">{selectedType?.name}</span>
+        <span className="text-base">{selectedType?.icon}</span>
+        <span className="font-medium text-sm hidden md:inline">{selectedType?.name}</span>
         <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-3 h-3 transition-transform ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -139,7 +139,7 @@ export function ChartTypeSelector({ selected, onChange }: ChartTypeSelectorProps
           />
 
           {/* Panel */}
-          <div className="absolute top-full left-0 mt-2 w-[280px] bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-20 max-h-[500px] overflow-y-auto">
+          <div className="fixed sm:absolute top-auto sm:top-full left-4 right-4 sm:left-0 sm:right-auto bottom-4 sm:bottom-auto mt-0 sm:mt-2 w-auto sm:w-[280px] bg-gray-800 border border-gray-700 rounded-lg shadow-2xl z-50 max-h-[70vh] sm:max-h-[500px] overflow-y-auto">
             <div className="p-2">
               {/* Velas */}
               <div className="text-xs font-semibold text-gray-400 px-3 py-2">

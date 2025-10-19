@@ -29,34 +29,46 @@ const SYMBOL_PRICES: Record<string, number> = {
   'MSFT': 375,
 };
 
-// Generar datos de muestra para cualquier símbolo (con seed fija para consistencia)
+// Generar datos de muestra más realistas para cualquier símbolo
 function generateSampleData(count: number = 500, symbol: string = 'BTC/USDT'): CandlestickData[] {
   const data: CandlestickData[] = [];
   const basePrice = SYMBOL_PRICES[symbol] || 100;
   let currentPrice = basePrice;
   const startTime = 1700000000; // Timestamp fijo para consistencia servidor/cliente
 
-  // Diferentes parámetros de volatilidad según el tipo de activo
-  const volatilityMultiplier = symbol.includes('USDT') ? 0.015 : 0.008;
+  // Diferentes parámetros según el tipo de activo
+  const isCrypto = symbol.includes('USDT');
+  const volatility = isCrypto ? 0.008 : 0.004; // Cryptos más volátiles
+  const trendStrength = 0.0001; // Tendencia suave
 
   for (let i = 0; i < count; i++) {
-    // Usar índice para generar cambios pseudo-aleatorios pero consistentes
-    const change = (Math.sin(i * 0.1) * basePrice * volatilityMultiplier) +
-                   (Math.cos(i * 0.05) * basePrice * volatilityMultiplier * 0.5);
-    currentPrice += change;
+    // Tendencia general (sube lentamente)
+    const trend = i * trendStrength * basePrice;
 
-    const open = currentPrice;
-    const volatility = Math.abs(Math.sin(i * 0.2)) * basePrice * volatilityMultiplier * 0.7;
-    const high = currentPrice + volatility;
-    const low = currentPrice - volatility;
-    const close = currentPrice + (Math.sin(i * 0.15) * basePrice * volatilityMultiplier * 0.4);
+    // Movimiento aleatorio pero consistente usando funciones trigonométricas
+    const randomWalk = Math.sin(i * 0.15) * volatility * basePrice +
+                       Math.cos(i * 0.08) * volatility * basePrice * 0.6 +
+                       Math.sin(i * 0.23) * volatility * basePrice * 0.3;
+
+    currentPrice = basePrice + trend + randomWalk;
+
+    // Generar vela OHLC realista
+    const openPrice = currentPrice;
+    const candleVolatility = Math.abs(Math.sin(i * 0.31)) * volatility * basePrice * 0.5;
+
+    // Close puede ser mayor o menor que open
+    const closePrice = openPrice + (Math.sin(i * 0.19) * candleVolatility);
+
+    // High y Low envuelven el rango open-close
+    const highPrice = Math.max(openPrice, closePrice) + Math.abs(Math.cos(i * 0.27)) * candleVolatility * 0.5;
+    const lowPrice = Math.min(openPrice, closePrice) - Math.abs(Math.sin(i * 0.33)) * candleVolatility * 0.5;
 
     data.push({
-      time: (startTime + (i * 60)) as any, // Incrementar 1 minuto por vela
-      open,
-      high,
-      low,
-      close,
+      time: (startTime + (i * 60)) as any, // 1 minuto por vela
+      open: openPrice,
+      high: highPrice,
+      low: lowPrice,
+      close: closePrice,
     });
   }
 
@@ -89,146 +101,84 @@ export default function BacktestingPage() {
   } = useBacktestPlayer(allCandles);
 
   return (
-    <div className="min-h-screen bg-gray-900 p-3 sm:p-6">
-      <div className="max-w-[1920px] mx-auto space-y-3 sm:space-y-4">
-        {/* Header con controles principales */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
-          <div className="flex-shrink-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Sistema de Backtesting</h1>
-            <p className="text-sm sm:text-base text-gray-400">Reproduce datos históricos en todas las temporalidades</p>
+    <div className="min-h-screen bg-gray-900 overflow-x-hidden">
+      <div className="h-screen flex flex-col">
+        {/* Header compacto */}
+        <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800 px-4 py-3">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <h1 className="text-lg sm:text-xl font-bold text-white">Backtesting</h1>
+              <div className="hidden sm:flex items-center gap-2">
+                <SymbolSelector selected={symbol} onChange={setSymbol} />
+                <TimeframeSelector selected={timeframe} onChange={setTimeframe} />
+                <ChartTypeSelector selected={chartType} onChange={setChartType} />
+              </div>
+            </div>
           </div>
 
-          {/* Controles de configuración */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          {/* Controles móviles */}
+          <div className="flex sm:hidden items-center gap-2 mt-3 overflow-x-auto pb-2">
             <SymbolSelector selected={symbol} onChange={setSymbol} />
             <TimeframeSelector selected={timeframe} onChange={setTimeframe} />
             <ChartTypeSelector selected={chartType} onChange={setChartType} />
           </div>
         </div>
 
-        {/* Información actual de la vela */}
+        {/* Controles de reproducción ARRIBA */}
+        <div className="flex-shrink-0 bg-gray-800 border-b border-gray-700">
+          <PlaybackControls
+            isPlaying={state.isPlaying}
+            currentIndex={state.currentIndex}
+            totalCandles={state.totalCandles}
+            speed={state.speed}
+            onPlay={play}
+            onPause={pause}
+            onReset={reset}
+            onForward={forward}
+            onBackward={backward}
+            onSpeedChange={setSpeed}
+            onSeek={jumpTo}
+          />
+        </div>
+
+        {/* OHLC Info compacta */}
         {currentCandle && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
-            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-xs sm:text-sm mb-1">Open</div>
-              <div className="text-white text-lg sm:text-xl font-bold">
-                ${currentCandle.open.toFixed(2)}
+          <div className="flex-shrink-0 bg-gray-850 border-b border-gray-700 px-4 py-2">
+            <div className="flex items-center gap-4 text-sm overflow-x-auto">
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-gray-400">O:</span>
+                <span className="text-white font-semibold">${currentCandle.open.toFixed(2)}</span>
               </div>
-            </div>
-            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-xs sm:text-sm mb-1">High</div>
-              <div className="text-green-400 text-lg sm:text-xl font-bold">
-                ${currentCandle.high.toFixed(2)}
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-gray-400">H:</span>
+                <span className="text-green-400 font-semibold">${currentCandle.high.toFixed(2)}</span>
               </div>
-            </div>
-            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-xs sm:text-sm mb-1">Low</div>
-              <div className="text-red-400 text-lg sm:text-xl font-bold">
-                ${currentCandle.low.toFixed(2)}
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-gray-400">L:</span>
+                <span className="text-red-400 font-semibold">${currentCandle.low.toFixed(2)}</span>
               </div>
-            </div>
-            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-xs sm:text-sm mb-1">Close</div>
-              <div className={`text-lg sm:text-xl font-bold ${currentCandle.close >= currentCandle.open ? 'text-green-400' : 'text-red-400'}`}>
-                ${currentCandle.close.toFixed(2)}
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-gray-400">C:</span>
+                <span className={`font-semibold ${currentCandle.close >= currentCandle.open ? 'text-green-400' : 'text-red-400'}`}>
+                  ${currentCandle.close.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2 whitespace-nowrap">
+                <span className="text-gray-400">Vela:</span>
+                <span className="text-white">{state.currentIndex} / {state.totalCandles}</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* Gráfico principal */}
-        <div className="h-[400px] sm:h-[500px] lg:h-[600px]">
+        {/* Gráfico principal - Ocupa todo el espacio disponible */}
+        <div className="flex-1 p-4 overflow-hidden">
           <TradingChart
             symbol={symbol}
             timeframe={timeframe}
             data={visibleCandles}
             chartType={chartType}
           />
-        </div>
-
-        {/* Controles de reproducción */}
-        <PlaybackControls
-          isPlaying={state.isPlaying}
-          currentIndex={state.currentIndex}
-          totalCandles={state.totalCandles}
-          speed={state.speed}
-          onPlay={play}
-          onPause={pause}
-          onReset={reset}
-          onForward={forward}
-          onBackward={backward}
-          onSpeedChange={setSpeed}
-          onSeek={jumpTo}
-        />
-
-        {/* Panel de información */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Estado del sistema */}
-          <div className="bg-blue-900/20 border border-blue-700 p-6 rounded-lg">
-            <h3 className="text-blue-400 font-semibold mb-3 flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              Sistema Funcionando
-            </h3>
-            <ul className="text-gray-300 text-sm space-y-2">
-              <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span>
-                Gráfico TradingView renderizado
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span>
-                {visibleCandles.length} velas visibles de {allCandles.length} total
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span>
-                Reproducción a {state.speed}x velocidad
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-green-400">✓</span>
-                Selector de 40+ temporalidades (ticks a 5 años)
-              </li>
-            </ul>
-          </div>
-
-          {/* Próximas funcionalidades */}
-          <div className="bg-purple-900/20 border border-purple-700 p-6 rounded-lg">
-            <h3 className="text-purple-400 font-semibold mb-3 flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Próximas Funcionalidades
-            </h3>
-            <ul className="text-gray-300 text-sm space-y-2">
-              <li className="flex items-center gap-2">
-                <span className="text-yellow-400">⏳</span>
-                Datos reales de Binance API
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-yellow-400">⏳</span>
-                Indicadores técnicos (RSI, MACD, EMA)
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-yellow-400">⏳</span>
-                Sistema de órdenes simuladas
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-yellow-400">⏳</span>
-                Métricas de performance (Win Rate, P&L)
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Instrucciones */}
-        <div className="bg-gray-800/50 border border-gray-700 p-4 rounded-lg">
-          <h4 className="text-white font-medium mb-2">💡 Cómo usar:</h4>
-          <div className="text-gray-300 text-sm space-y-1">
-            <p>• <strong>Play/Pausa:</strong> Controla la reproducción de velas históricas</p>
-            <p>• <strong>Velocidad:</strong> Ajusta entre 1x y 100x para reproducir más rápido</p>
-            <p>• <strong>Barra de progreso:</strong> Arrastra para saltar a cualquier momento</p>
-            <p>• <strong>Temporalidades:</strong> Cambia el timeframe para ver diferentes escalas temporales</p>
-          </div>
         </div>
       </div>
     </div>
