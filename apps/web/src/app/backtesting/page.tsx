@@ -106,28 +106,47 @@ export default function BacktestingPage() {
   return (
     <div className="min-h-screen bg-gray-900 overflow-x-hidden">
       <div className="h-screen flex flex-col">
-        {/* Header compacto */}
-        <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800 px-4 py-3">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <h1 className="text-lg sm:text-xl font-bold text-white">Backtesting</h1>
-              <div className="hidden sm:flex items-center gap-2">
+        {/* Header compacto con selectores y OHLC */}
+        <div className="flex-shrink-0 bg-gray-900 border-b border-gray-800 px-4 py-2">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            {/* Lado izquierdo: Logo y selectores */}
+            <div className="flex items-center gap-3">
+              <h1 className="text-base font-bold text-white">Backtesting</h1>
+              <div className="hidden lg:flex items-center gap-2">
                 <SymbolSelector selected={symbol} onChange={setSymbol} />
                 <TimeframeSelector selected={timeframe} onChange={setTimeframe} />
                 <ChartTypeSelector selected={chartType} onChange={setChartType} />
               </div>
             </div>
+
+            {/* Lado derecho: OHLC info compacta */}
+            {currentCandle && (
+              <div className="hidden lg:flex items-center gap-3 text-xs">
+                <span className="text-gray-500">O:</span>
+                <span className="text-white font-medium">${currentCandle.open.toFixed(2)}</span>
+                <span className="text-gray-500">H:</span>
+                <span className="text-green-400 font-medium">${currentCandle.high.toFixed(2)}</span>
+                <span className="text-gray-500">L:</span>
+                <span className="text-red-400 font-medium">${currentCandle.low.toFixed(2)}</span>
+                <span className="text-gray-500">C:</span>
+                <span className={`font-medium ${currentCandle.close >= currentCandle.open ? 'text-green-400' : 'text-red-400'}`}>
+                  ${currentCandle.close.toFixed(2)}
+                </span>
+                <span className="text-gray-600">|</span>
+                <span className="text-gray-400">{state.currentIndex + 1}/{state.totalCandles}</span>
+              </div>
+            )}
           </div>
 
           {/* Controles móviles */}
-          <div className="flex sm:hidden items-center gap-2 mt-3 overflow-x-auto pb-2">
+          <div className="flex lg:hidden items-center gap-2 mt-2 overflow-x-auto pb-1">
             <SymbolSelector selected={symbol} onChange={setSymbol} />
             <TimeframeSelector selected={timeframe} onChange={setTimeframe} />
             <ChartTypeSelector selected={chartType} onChange={setChartType} />
           </div>
         </div>
 
-        {/* Controles de reproducción ARRIBA */}
+        {/* Controles de reproducción */}
         <div className="flex-shrink-0 bg-gray-800 border-b border-gray-700">
           <PlaybackControls
             isPlaying={state.isPlaying}
@@ -143,36 +162,6 @@ export default function BacktestingPage() {
             onSeek={jumpTo}
           />
         </div>
-
-        {/* OHLC Info compacta */}
-        {currentCandle && (
-          <div className="flex-shrink-0 bg-gray-850 border-b border-gray-700 px-4 py-2">
-            <div className="flex items-center gap-4 text-sm overflow-x-auto">
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-gray-400">O:</span>
-                <span className="text-white font-semibold">${currentCandle.open.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-gray-400">H:</span>
-                <span className="text-green-400 font-semibold">${currentCandle.high.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-gray-400">L:</span>
-                <span className="text-red-400 font-semibold">${currentCandle.low.toFixed(2)}</span>
-              </div>
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-gray-400">C:</span>
-                <span className={`font-semibold ${currentCandle.close >= currentCandle.open ? 'text-green-400' : 'text-red-400'}`}>
-                  ${currentCandle.close.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 whitespace-nowrap">
-                <span className="text-gray-400">Vela:</span>
-                <span className="text-white">{state.currentIndex} / {state.totalCandles}</span>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Gráfico principal - Ocupa todo el espacio disponible */}
         <div className="flex-1 p-4 overflow-hidden">
