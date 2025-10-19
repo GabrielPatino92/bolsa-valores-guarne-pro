@@ -29,37 +29,51 @@ const SYMBOL_PRICES: Record<string, number> = {
   'MSFT': 375,
 };
 
-// Generar datos de muestra realistas para velas japonesas
+// Generador de números pseudo-aleatorios con seed (para consistencia)
+function seededRandom(seed: number): () => number {
+  let state = seed;
+  return () => {
+    state = (state * 1103515245 + 12345) & 0x7fffffff;
+    return state / 0x7fffffff;
+  };
+}
+
+// Generar datos de muestra REALISTAS para velas japonesas
 function generateSampleData(count: number = 500, symbol: string = 'BTC/USDT'): CandlestickData[] {
   const data: CandlestickData[] = [];
   const basePrice = SYMBOL_PRICES[symbol] || 100;
-  let price = basePrice;
   const startTime = 1700000000;
+
+  // Generador pseudo-aleatorio con seed
+  const random = seededRandom(12345);
 
   // Parámetros de mercado
   const isCrypto = symbol.includes('USDT');
-  const volatilityPercent = isCrypto ? 1.5 : 0.8; // Crypto más volátil
+  const volatility = isCrypto ? 0.015 : 0.008; // 1.5% vs 0.8%
+
+  let price = basePrice;
+  let trend = 0; // Tendencia acumulada
 
   for (let i = 0; i < count; i++) {
-    // Precio de apertura (precio anterior de cierre)
+    // Cambio de tendencia cada ~20-50 velas
+    if (i % (20 + Math.floor(random() * 30)) === 0) {
+      trend = (random() - 0.5) * volatility * basePrice * 0.3;
+    }
+
+    // Movimiento de la vela (aleatorio + tendencia)
+    const randomMove = (random() - 0.5) * volatility * basePrice * 2;
+    const movement = randomMove + trend;
+
+    // Open y Close
     const open = price;
-
-    // Rango de la vela (volatilidad)
-    const candleRange = basePrice * (volatilityPercent / 100);
-
-    // Movimiento del precio (puede subir o bajar)
-    const movement = Math.sin(i * 0.1) * candleRange * 2 +
-                     Math.cos(i * 0.05) * candleRange +
-                     Math.sin(i * 0.15) * candleRange * 0.5;
-
-    // Precio de cierre
     const close = open + movement;
 
-    // High y Low de la vela (mechas)
-    const upperWick = Math.abs(Math.sin(i * 0.2)) * candleRange * 0.8;
-    const lowerWick = Math.abs(Math.cos(i * 0.25)) * candleRange * 0.8;
+    // Tamaño de las mechas (variable)
+    const wickSize = random() * volatility * basePrice * 0.6;
+    const upperWick = random() * wickSize;
+    const lowerWick = random() * wickSize;
 
-    // Calcular high y low correctamente
+    // High y Low
     const high = Math.max(open, close) + upperWick;
     const low = Math.min(open, close) - lowerWick;
 
@@ -71,8 +85,12 @@ function generateSampleData(count: number = 500, symbol: string = 'BTC/USDT'): C
       close: Number(close.toFixed(2)),
     });
 
-    // Actualizar precio para próxima vela
+    // Actualizar precio para siguiente vela
     price = close;
+
+    // Evitar que el precio se vaya a 0 o infinito
+    if (price < basePrice * 0.7) price = basePrice * 0.7;
+    if (price > basePrice * 1.5) price = basePrice * 1.5;
   }
 
   return data;
