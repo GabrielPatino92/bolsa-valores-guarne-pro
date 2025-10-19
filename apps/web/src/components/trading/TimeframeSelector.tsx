@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TIMEFRAMES_BY_CATEGORY, TimeframeCategory, TIMEFRAMES } from '@guarne/shared';
 
 interface TimeframeSelectorProps {
@@ -9,10 +9,15 @@ interface TimeframeSelectorProps {
 }
 
 export function TimeframeSelector({ selected, onChange }: TimeframeSelectorProps) {
+  const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set([TimeframeCategory.MINUTES]) // Minutos expandido por defecto
   );
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const toggleCategory = (category: TimeframeCategory) => {
     const newExpanded = new Set(expandedCategories);
@@ -37,6 +42,19 @@ export function TimeframeSelector({ selected, onChange }: TimeframeSelectorProps
   };
 
   const selectedTimeframe = TIMEFRAMES[selected];
+
+  if (!mounted) {
+    return (
+      <div className="relative">
+        <button className="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-700 flex items-center gap-2 border border-gray-700">
+          <span className="font-medium">{selectedTimeframe?.label || selected}</span>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">
