@@ -29,47 +29,50 @@ const SYMBOL_PRICES: Record<string, number> = {
   'MSFT': 375,
 };
 
-// Generar datos de muestra más realistas para cualquier símbolo
+// Generar datos de muestra realistas para velas japonesas
 function generateSampleData(count: number = 500, symbol: string = 'BTC/USDT'): CandlestickData[] {
   const data: CandlestickData[] = [];
   const basePrice = SYMBOL_PRICES[symbol] || 100;
-  let currentPrice = basePrice;
-  const startTime = 1700000000; // Timestamp fijo para consistencia servidor/cliente
+  let price = basePrice;
+  const startTime = 1700000000;
 
-  // Diferentes parámetros según el tipo de activo
+  // Parámetros de mercado
   const isCrypto = symbol.includes('USDT');
-  const volatility = isCrypto ? 0.008 : 0.004; // Cryptos más volátiles
-  const trendStrength = 0.0001; // Tendencia suave
+  const volatilityPercent = isCrypto ? 1.5 : 0.8; // Crypto más volátil
 
   for (let i = 0; i < count; i++) {
-    // Tendencia general (sube lentamente)
-    const trend = i * trendStrength * basePrice;
+    // Precio de apertura (precio anterior de cierre)
+    const open = price;
 
-    // Movimiento aleatorio pero consistente usando funciones trigonométricas
-    const randomWalk = Math.sin(i * 0.15) * volatility * basePrice +
-                       Math.cos(i * 0.08) * volatility * basePrice * 0.6 +
-                       Math.sin(i * 0.23) * volatility * basePrice * 0.3;
+    // Rango de la vela (volatilidad)
+    const candleRange = basePrice * (volatilityPercent / 100);
 
-    currentPrice = basePrice + trend + randomWalk;
+    // Movimiento del precio (puede subir o bajar)
+    const movement = Math.sin(i * 0.1) * candleRange * 2 +
+                     Math.cos(i * 0.05) * candleRange +
+                     Math.sin(i * 0.15) * candleRange * 0.5;
 
-    // Generar vela OHLC realista
-    const openPrice = currentPrice;
-    const candleVolatility = Math.abs(Math.sin(i * 0.31)) * volatility * basePrice * 0.5;
+    // Precio de cierre
+    const close = open + movement;
 
-    // Close puede ser mayor o menor que open
-    const closePrice = openPrice + (Math.sin(i * 0.19) * candleVolatility);
+    // High y Low de la vela (mechas)
+    const upperWick = Math.abs(Math.sin(i * 0.2)) * candleRange * 0.8;
+    const lowerWick = Math.abs(Math.cos(i * 0.25)) * candleRange * 0.8;
 
-    // High y Low envuelven el rango open-close
-    const highPrice = Math.max(openPrice, closePrice) + Math.abs(Math.cos(i * 0.27)) * candleVolatility * 0.5;
-    const lowPrice = Math.min(openPrice, closePrice) - Math.abs(Math.sin(i * 0.33)) * candleVolatility * 0.5;
+    // Calcular high y low correctamente
+    const high = Math.max(open, close) + upperWick;
+    const low = Math.min(open, close) - lowerWick;
 
     data.push({
-      time: (startTime + (i * 60)) as any, // 1 minuto por vela
-      open: openPrice,
-      high: highPrice,
-      low: lowPrice,
-      close: closePrice,
+      time: (startTime + (i * 60)) as any,
+      open: Number(open.toFixed(2)),
+      high: Number(high.toFixed(2)),
+      low: Number(low.toFixed(2)),
+      close: Number(close.toFixed(2)),
     });
+
+    // Actualizar precio para próxima vela
+    price = close;
   }
 
   return data;
