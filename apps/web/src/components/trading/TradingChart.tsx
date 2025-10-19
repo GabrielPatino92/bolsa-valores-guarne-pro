@@ -68,6 +68,38 @@ export function TradingChart({ symbol, timeframe, data, chartType = 'candlestick
         });
         break;
 
+      case 'candlestick-hollow':
+        // Velas huecas: bordeMuestra, relleno solo en velas bajistas
+        series = chart.addCandlestickSeries({
+          upColor: 'transparent',
+          downColor: '#ef5350',
+          borderUpColor: '#26a69a',
+          borderDownColor: '#ef5350',
+          wickUpColor: '#26a69a',
+          wickDownColor: '#ef5350',
+          borderVisible: true,
+        });
+        break;
+
+      case 'bar':
+        series = chart.addBarSeries({
+          upColor: '#26a69a',
+          downColor: '#ef5350',
+          openVisible: true,
+          thinBars: false,
+        });
+        break;
+
+      case 'hlc':
+        // HLC: barras sin la línea de Open
+        series = chart.addBarSeries({
+          upColor: '#26a69a',
+          downColor: '#ef5350',
+          openVisible: false,
+          thinBars: false,
+        });
+        break;
+
       case 'line':
         series = chart.addLineSeries({
           color: '#2962FF',
@@ -81,15 +113,6 @@ export function TradingChart({ symbol, timeframe, data, chartType = 'candlestick
           bottomColor: 'rgba(41, 98, 255, 0.0)',
           lineColor: '#2962FF',
           lineWidth: 2,
-        });
-        break;
-
-      case 'bar':
-        series = chart.addBarSeries({
-          upColor: '#26a69a',
-          downColor: '#ef5350',
-          openVisible: true,
-          thinBars: false,
         });
         break;
 
@@ -150,7 +173,7 @@ export function TradingChart({ symbol, timeframe, data, chartType = 'candlestick
         }));
         seriesRef.current.setData(histogramData);
       } else {
-        // Para candlestick y bar, usar los datos originales
+        // Para candlestick, candlestick-hollow, bar, hlc usar los datos originales
         seriesRef.current.setData(data);
       }
     }

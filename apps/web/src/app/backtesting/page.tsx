@@ -9,22 +9,47 @@ import { SymbolSelector } from '@/components/trading/SymbolSelector';
 import { ChartTypeSelector, ChartType } from '@/components/trading/ChartTypeSelector';
 import { useBacktestPlayer } from '@/hooks/useBacktestPlayer';
 
-// Generar datos de muestra para BTC/USDT (con seed fija para consistencia)
-function generateSampleData(count: number = 500, seed: number = 42000): CandlestickData[] {
+// Mapeo de símbolos a precios base aproximados
+const SYMBOL_PRICES: Record<string, number> = {
+  'BTC/USDT': 42000,
+  'ETH/USDT': 2200,
+  'BNB/USDT': 320,
+  'SOL/USDT': 95,
+  'XRP/USDT': 0.62,
+  'ADA/USDT': 0.48,
+  'AVAX/USDT': 38,
+  'DOT/USDT': 7.2,
+  'MATIC/USDT': 0.85,
+  'LINK/USDT': 14.5,
+  'EUR/USD': 1.08,
+  'GBP/USD': 1.26,
+  'USD/JPY': 148.5,
+  'AAPL': 185,
+  'GOOGL': 140,
+  'MSFT': 375,
+};
+
+// Generar datos de muestra para cualquier símbolo (con seed fija para consistencia)
+function generateSampleData(count: number = 500, symbol: string = 'BTC/USDT'): CandlestickData[] {
   const data: CandlestickData[] = [];
-  let basePrice = seed;
+  const basePrice = SYMBOL_PRICES[symbol] || 100;
+  let currentPrice = basePrice;
   const startTime = 1700000000; // Timestamp fijo para consistencia servidor/cliente
+
+  // Diferentes parámetros de volatilidad según el tipo de activo
+  const volatilityMultiplier = symbol.includes('USDT') ? 0.015 : 0.008;
 
   for (let i = 0; i < count; i++) {
     // Usar índice para generar cambios pseudo-aleatorios pero consistentes
-    const change = (Math.sin(i * 0.1) * 400) + (Math.cos(i * 0.05) * 200);
-    basePrice += change;
+    const change = (Math.sin(i * 0.1) * basePrice * volatilityMultiplier) +
+                   (Math.cos(i * 0.05) * basePrice * volatilityMultiplier * 0.5);
+    currentPrice += change;
 
-    const open = basePrice;
-    const volatility = Math.abs(Math.sin(i * 0.2)) * 300;
-    const high = basePrice + volatility;
-    const low = basePrice - volatility;
-    const close = basePrice + (Math.sin(i * 0.15) * 150);
+    const open = currentPrice;
+    const volatility = Math.abs(Math.sin(i * 0.2)) * basePrice * volatilityMultiplier * 0.7;
+    const high = currentPrice + volatility;
+    const low = currentPrice - volatility;
+    const close = currentPrice + (Math.sin(i * 0.15) * basePrice * volatilityMultiplier * 0.4);
 
     data.push({
       time: (startTime + (i * 60)) as any, // Incrementar 1 minuto por vela
@@ -44,10 +69,11 @@ export default function BacktestingPage() {
   const [chartType, setChartType] = useState<ChartType>('candlestick');
   const [allCandles, setAllCandles] = useState<CandlestickData[]>([]);
 
+  // Regenerar datos cuando cambie el símbolo
   useEffect(() => {
     // Generar datos solo en el cliente
-    setAllCandles(generateSampleData(500));
-  }, []);
+    setAllCandles(generateSampleData(500, symbol));
+  }, [symbol]);
 
   const {
     state,
@@ -63,17 +89,17 @@ export default function BacktestingPage() {
   } = useBacktestPlayer(allCandles);
 
   return (
-    <div className="min-h-screen bg-gray-900 p-6">
-      <div className="max-w-[1920px] mx-auto space-y-4">
+    <div className="min-h-screen bg-gray-900 p-3 sm:p-6">
+      <div className="max-w-[1920px] mx-auto space-y-3 sm:space-y-4">
         {/* Header con controles principales */}
-        <div className="flex items-center justify-between flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-1">Sistema de Backtesting</h1>
-            <p className="text-gray-400">Reproduce datos históricos en todas las temporalidades</p>
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4">
+          <div className="flex-shrink-0">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Sistema de Backtesting</h1>
+            <p className="text-sm sm:text-base text-gray-400">Reproduce datos históricos en todas las temporalidades</p>
           </div>
 
           {/* Controles de configuración */}
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <SymbolSelector selected={symbol} onChange={setSymbol} />
             <TimeframeSelector selected={timeframe} onChange={setTimeframe} />
             <ChartTypeSelector selected={chartType} onChange={setChartType} />
@@ -82,28 +108,28 @@ export default function BacktestingPage() {
 
         {/* Información actual de la vela */}
         {currentCandle && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-sm mb-1">Open</div>
-              <div className="text-white text-xl font-bold">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
+            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
+              <div className="text-gray-400 text-xs sm:text-sm mb-1">Open</div>
+              <div className="text-white text-lg sm:text-xl font-bold">
                 ${currentCandle.open.toFixed(2)}
               </div>
             </div>
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-sm mb-1">High</div>
-              <div className="text-green-400 text-xl font-bold">
+            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
+              <div className="text-gray-400 text-xs sm:text-sm mb-1">High</div>
+              <div className="text-green-400 text-lg sm:text-xl font-bold">
                 ${currentCandle.high.toFixed(2)}
               </div>
             </div>
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-sm mb-1">Low</div>
-              <div className="text-red-400 text-xl font-bold">
+            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
+              <div className="text-gray-400 text-xs sm:text-sm mb-1">Low</div>
+              <div className="text-red-400 text-lg sm:text-xl font-bold">
                 ${currentCandle.low.toFixed(2)}
               </div>
             </div>
-            <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
-              <div className="text-gray-400 text-sm mb-1">Close</div>
-              <div className={`text-xl font-bold ${currentCandle.close >= currentCandle.open ? 'text-green-400' : 'text-red-400'}`}>
+            <div className="bg-gray-800 p-3 sm:p-4 rounded-lg border border-gray-700">
+              <div className="text-gray-400 text-xs sm:text-sm mb-1">Close</div>
+              <div className={`text-lg sm:text-xl font-bold ${currentCandle.close >= currentCandle.open ? 'text-green-400' : 'text-red-400'}`}>
                 ${currentCandle.close.toFixed(2)}
               </div>
             </div>
@@ -111,7 +137,7 @@ export default function BacktestingPage() {
         )}
 
         {/* Gráfico principal */}
-        <div className="h-[600px]">
+        <div className="h-[400px] sm:h-[500px] lg:h-[600px]">
           <TradingChart
             symbol={symbol}
             timeframe={timeframe}
