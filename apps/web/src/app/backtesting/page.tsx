@@ -1,31 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { CandlestickData } from 'lightweight-charts';
 import { TradingChart } from '@/components/trading/TradingChart';
 import { TimeframeSelector } from '@/components/trading/TimeframeSelector';
 import { PlaybackControls } from '@/components/trading/PlaybackControls';
 import { useBacktestPlayer } from '@/hooks/useBacktestPlayer';
 
-// Generar datos de muestra para BTC/USDT
-function generateSampleData(count: number = 500): CandlestickData[] {
+// Generar datos de muestra para BTC/USDT (con seed fija para consistencia)
+function generateSampleData(count: number = 500, seed: number = 42000): CandlestickData[] {
   const data: CandlestickData[] = [];
-  let basePrice = 42000; // Precio inicial BTC
-  let time = Math.floor(Date.now() / 1000) - (count * 60); // Timestamp en segundos
+  let basePrice = seed;
+  const startTime = 1700000000; // Timestamp fijo para consistencia servidor/cliente
 
   for (let i = 0; i < count; i++) {
-    // Simular movimiento de precio realista
-    const change = (Math.random() - 0.5) * 800;
+    // Usar índice para generar cambios pseudo-aleatorios pero consistentes
+    const change = (Math.sin(i * 0.1) * 400) + (Math.cos(i * 0.05) * 200);
     basePrice += change;
 
     const open = basePrice;
-    const volatility = Math.random() * 400;
+    const volatility = Math.abs(Math.sin(i * 0.2)) * 300;
     const high = basePrice + volatility;
     const low = basePrice - volatility;
-    const close = basePrice + (Math.random() - 0.5) * 300;
+    const close = basePrice + (Math.sin(i * 0.15) * 150);
 
     data.push({
-      time: time + (i * 60), // Incrementar 1 minuto por vela
+      time: (startTime + (i * 60)) as any, // Incrementar 1 minuto por vela
       open,
       high,
       low,
@@ -39,7 +39,14 @@ function generateSampleData(count: number = 500): CandlestickData[] {
 export default function BacktestingPage() {
   const [symbol] = useState('BTC/USDT');
   const [timeframe, setTimeframe] = useState('15m');
-  const [allCandles] = useState<CandlestickData[]>(() => generateSampleData(500));
+  const [allCandles, setAllCandles] = useState<CandlestickData[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    // Generar datos solo en el cliente
+    setAllCandles(generateSampleData(500));
+    setMounted(true);
+  }, []);
 
   const {
     state,
