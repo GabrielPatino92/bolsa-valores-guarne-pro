@@ -5,6 +5,8 @@ import { CandlestickData } from 'lightweight-charts';
 import { TradingChart } from '@/components/trading/TradingChart';
 import { TimeframeSelector } from '@/components/trading/TimeframeSelector';
 import { PlaybackControls } from '@/components/trading/PlaybackControls';
+import { SymbolSelector } from '@/components/trading/SymbolSelector';
+import { ChartTypeSelector, ChartType } from '@/components/trading/ChartTypeSelector';
 import { useBacktestPlayer } from '@/hooks/useBacktestPlayer';
 
 // Generar datos de muestra para BTC/USDT (con seed fija para consistencia)
@@ -37,15 +39,14 @@ function generateSampleData(count: number = 500, seed: number = 42000): Candlest
 }
 
 export default function BacktestingPage() {
-  const [symbol] = useState('BTC/USDT');
+  const [symbol, setSymbol] = useState('BTC/USDT');
   const [timeframe, setTimeframe] = useState('15m');
+  const [chartType, setChartType] = useState<ChartType>('candlestick');
   const [allCandles, setAllCandles] = useState<CandlestickData[]>([]);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     // Generar datos solo en el cliente
     setAllCandles(generateSampleData(500));
-    setMounted(true);
   }, []);
 
   const {
@@ -63,14 +64,20 @@ export default function BacktestingPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">
-      <div className="max-w-[1920px] mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+      <div className="max-w-[1920px] mx-auto space-y-4">
+        {/* Header con controles principales */}
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
             <h1 className="text-3xl font-bold text-white mb-1">Sistema de Backtesting</h1>
             <p className="text-gray-400">Reproduce datos históricos en todas las temporalidades</p>
           </div>
-          <TimeframeSelector selected={timeframe} onChange={setTimeframe} />
+
+          {/* Controles de configuración */}
+          <div className="flex items-center gap-3 flex-wrap">
+            <SymbolSelector selected={symbol} onChange={setSymbol} />
+            <TimeframeSelector selected={timeframe} onChange={setTimeframe} />
+            <ChartTypeSelector selected={chartType} onChange={setChartType} />
+          </div>
         </div>
 
         {/* Información actual de la vela */}
@@ -109,6 +116,7 @@ export default function BacktestingPage() {
             symbol={symbol}
             timeframe={timeframe}
             data={visibleCandles}
+            chartType={chartType}
           />
         </div>
 

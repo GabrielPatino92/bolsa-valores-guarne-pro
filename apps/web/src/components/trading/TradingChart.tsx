@@ -1,20 +1,30 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { createChart, IChartApi, ISeriesApi, CandlestickData } from 'lightweight-charts';
+import { useEffect, useRef } from 'react';
+import { createChart, IChartApi, CandlestickData, LineData } from 'lightweight-charts';
 import { TIMEFRAMES } from '@guarne/shared';
+import { ChartType } from './ChartTypeSelector';
 
 interface TradingChartProps {
   symbol: string;
   timeframe: string;
   data: CandlestickData[];
+  chartType?: ChartType;
   onReady?: (chart: IChartApi) => void;
 }
 
-export function TradingChart({ symbol, timeframe, data, onReady }: TradingChartProps) {
+export function TradingChart({ symbol, timeframe, data, chartType = 'candlestick', onReady }: TradingChartProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
-  const candlestickSeriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
+  const seriesRef = useRef<any>(null);
+
+  // Convertir datos de velas a formato de línea/área
+  const convertToLineData = (candleData: CandlestickData[]): LineData[] => {
+    return candleData.map(candle => ({
+      time: candle.time,
+      value: candle.close,
+    }));
+  };
 
   useEffect(() => {
     if (!chartContainerRef.current) return;
@@ -44,17 +54,66 @@ export function TradingChart({ symbol, timeframe, data, onReady }: TradingChartP
       },
     });
 
-    // Crear serie de velas
-    const candlestickSeries = chart.addCandlestickSeries({
-      upColor: '#26a69a',
-      downColor: '#ef5350',
-      borderVisible: false,
-      wickUpColor: '#26a69a',
-      wickDownColor: '#ef5350',
-    });
+    // Crear la serie según el tipo de gráfico
+    let series: any;
+
+    switch (chartType) {
+      case 'candlestick':
+        series = chart.addCandlestickSeries({
+          upColor: '#26a69a',
+          downColor: '#ef5350',
+          borderVisible: false,
+          wickUpColor: '#26a69a',
+          wickDownColor: '#ef5350',
+        });
+        break;
+
+      case 'line':
+        series = chart.addLineSeries({
+          color: '#2962FF',
+          lineWidth: 2,
+        });
+        break;
+
+      case 'area':
+        series = chart.addAreaSeries({
+          topColor: 'rgba(41, 98, 255, 0.4)',
+          bottomColor: 'rgba(41, 98, 255, 0.0)',
+          lineColor: '#2962FF',
+          lineWidth: 2,
+        });
+        break;
+
+      case 'bar':
+        series = chart.addBarSeries({
+          upColor: '#26a69a',
+          downColor: '#ef5350',
+          openVisible: true,
+          thinBars: false,
+        });
+        break;
+
+      case 'baseline':
+        series = chart.addBaselineSeries({
+          topFillColor1: 'rgba(38, 166, 154, 0.28)',
+          topFillColor2: 'rgba(38, 166, 154, 0.05)',
+          topLineColor: '#26a69a',
+          bottomFillColor1: 'rgba(239, 83, 80, 0.05)',
+          bottomFillColor2: 'rgba(239, 83, 80, 0.28)',
+          bottomLineColor: '#ef5350',
+          baseValue: { type: 'price', price: data[0]?.close || 0 },
+        });
+        break;
+
+      case 'histogram':
+        series = chart.addHistogramSeries({
+          color: '#26a69a',
+        });
+        break;
+    }
 
     chartRef.current = chart;
-    candlestickSeriesRef.current = candlestickSeries;
+    seriesRef.current = series;
 
     onReady?.(chart);
 
@@ -73,14 +132,29 @@ export function TradingChart({ symbol, timeframe, data, onReady }: TradingChartP
       window.removeEventListener('resize', handleResize);
       chart.remove();
     };
-  }, [timeframe, onReady]);
+  }, [timeframe, chartType, onReady]);
 
   // Actualizar datos cuando cambien
   useEffect(() => {
-    if (candlestickSeriesRef.current && data.length > 0) {
-      candlestickSeriesRef.current.setData(data);
+    if (seriesRef.current && data.length > 0) {
+      // Para tipos de gráfico que no son candlestick/bar, convertir a LineData
+      if (chartType === 'line' || chartType === 'area' || chartType === 'baseline') {
+        const lineData = convertToLineData(data);
+        seriesRef.current.setData(lineData);
+      } else if (chartType === 'histogram') {
+        // Para histograma, usar los valores de close
+        const histogramData = data.map(candle => ({
+          time: candle.time,
+          value: candle.close,
+          color: candle.close >= candle.open ? '#26a69a' : '#ef5350',
+        }));
+        seriesRef.current.setData(histogramData);
+      } else {
+        // Para candlestick y bar, usar los datos originales
+        seriesRef.current.setData(data);
+      }
     }
-  }, [data]);
+  }, [data, chartType]);
 
   return (
     <div className="relative w-full h-full bg-gray-900 rounded-lg overflow-hidden">
