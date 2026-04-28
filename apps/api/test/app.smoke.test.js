@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createApp } from '../src/app/create-app.js';
+import { createProviderRegistry } from '../src/integrations/providers/registry.js';
+import { createMemoryProviderRepository } from './helpers/create-memory-provider-repository.js';
 import { createMemoryRefreshTokenRepository } from './helpers/create-memory-refresh-token-repository.js';
 import { createMemoryUserRepository } from './helpers/create-memory-user-repository.js';
 
@@ -13,6 +15,27 @@ const testEnv = {
   JWT_REFRESH_SECRET: 'change-this-refresh-token-secret-min-32-chars-for-production'
 };
 
+const providerSeed = [
+  {
+    id: 'provider-binance',
+    name: 'binance',
+    type: 'crypto',
+    displayName: 'Binance',
+    isActive: true,
+    supportsTestnet: true,
+    createdAt: new Date().toISOString()
+  },
+  {
+    id: 'provider-ibkr',
+    name: 'ibkr',
+    type: 'stocks',
+    displayName: 'Interactive Brokers',
+    isActive: true,
+    supportsTestnet: true,
+    createdAt: new Date().toISOString()
+  }
+];
+
 function createFakePool() {
   return {
     async query() {
@@ -22,13 +45,19 @@ function createFakePool() {
   };
 }
 
-test('GET /health returns API readiness', async (t) => {
-  const app = await createApp({
+function createTestApp() {
+  return createApp({
     env: testEnv,
     pool: createFakePool(),
     userRepository: createMemoryUserRepository(),
-    refreshTokenRepository: createMemoryRefreshTokenRepository()
+    refreshTokenRepository: createMemoryRefreshTokenRepository(),
+    providerRepository: createMemoryProviderRepository(providerSeed),
+    providerRegistry: createProviderRegistry()
   });
+}
+
+test('GET /health returns API readiness', async (t) => {
+  const app = await createTestApp();
 
   t.after(async () => {
     await app.close();
@@ -47,12 +76,7 @@ test('GET /health returns API readiness', async (t) => {
 });
 
 test('auth endpoints issue JWTs and protect /users/me', async (t) => {
-  const app = await createApp({
-    env: testEnv,
-    pool: createFakePool(),
-    userRepository: createMemoryUserRepository(),
-    refreshTokenRepository: createMemoryRefreshTokenRepository()
-  });
+  const app = await createTestApp();
 
   t.after(async () => {
     await app.close();
@@ -116,4 +140,47 @@ test('auth endpoints issue JWTs and protect /users/me', async (t) => {
   assert.ok(refreshBody.accessToken);
   assert.ok(refreshBody.refreshToken);
   assert.notEqual(refreshBody.refreshToken, loginBody.refreshToken);
+});
+
+test('provider catalog exposes capabilities and registry boundaries', async (t) => {
+  const app = await createTestApp();
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/v1/providers'
+  });
+
+  assert.equal(response.statusCode, 200);
+  const body = response.json();
+  assert.equal(body.providers.length, 2);
+
+  const binance = body.providers.find((provider) => provider.name === 'binance');
+  const ibkr = body.providers.find((provider) => provider.name === 'ibkr');
+
+  assert.equal(binance.capabilities.marketData, true);
+  assert.equal(binance.capabilities.websocket, true);
+  assert.equal(binance.adapterStatus, 'stubbed');
+  assert.equal(ibkr.capabilities.accountData, true);
+  assert.equal(ibkr.capabilities.orderExecution, true);
+
+  const providerResponse = await app.inject({
+    method: 'GET',
+    url: '/api/v1/providers/binance'
+  });
+
+  assert.equal(providerResponse.statusCode, 200);
+  assert.equal(providerResponse.json().provider.name, 'binance');
+
+  const registry = createProviderRegistry();
+  const marketDataAdapter = registry.resolveAdapter('binance', 'marketData');
+  assert.equal(marketDataAdapter.providerName, 'binance');
+
+  assert.throws(
+    () => registry.resolveAdapter('binance', 'accountData'),
+    /does not expose the accountData adapter yet/
+  );
 });

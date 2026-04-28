@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Guarne Pro API
-  version: 0.2.0
+  version: 0.3.0
   description: >-
     Backend JavaScript-first en Fastify para Guarne Pro.
-    Este contrato cubre health, auth y users con persistencia de refresh tokens.
+    Este contrato cubre health, auth, users y providers con persistencia de refresh tokens.
 servers:
   - url: http://localhost:4000
     description: Local development
@@ -12,6 +12,7 @@ tags:
   - name: Health
   - name: Auth
   - name: Users
+  - name: Providers
 paths:
   /health:
     get:
@@ -106,6 +107,41 @@ paths:
                 required: [user]
         '401':
           $ref: '#/components/responses/Unauthorized'
+  /api/v1/providers:
+    get:
+      tags: [Providers]
+      summary: Return the provider catalog with capability flags
+      responses:
+        '200':
+          description: Provider catalog
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProviderCatalogResponse'
+  /api/v1/providers/{providerName}:
+    get:
+      tags: [Providers]
+      summary: Return a single provider catalog entry
+      parameters:
+        - in: path
+          name: providerName
+          required: true
+          schema:
+            type: string
+            enum: [binance, okx, coinbase, ibkr]
+      responses:
+        '200':
+          description: Provider catalog entry
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  provider:
+                    $ref: '#/components/schemas/Provider'
+                required: [provider]
+        '404':
+          $ref: '#/components/responses/NotFound'
 components:
   securitySchemes:
     bearerAuth:
@@ -127,6 +163,12 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     Conflict:
       description: Resource conflict
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotFound:
+      description: Resource not found
       content:
         application/json:
           schema:
@@ -197,6 +239,54 @@ components:
           type: string
           example: Bearer
       required: [user, accessToken, refreshToken, tokenType]
+    ProviderCapabilities:
+      type: object
+      properties:
+        marketData:
+          type: boolean
+        accountData:
+          type: boolean
+        orderExecution:
+          type: boolean
+        paperTrading:
+          type: boolean
+        websocket:
+          type: boolean
+      required: [marketData, accountData, orderExecution, paperTrading, websocket]
+    Provider:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+          enum: [binance, okx, coinbase, ibkr]
+        type:
+          type: string
+          enum: [crypto, forex, stocks, futures]
+        displayName:
+          type: string
+        isActive:
+          type: boolean
+        supportsTestnet:
+          type: boolean
+        adapterStatus:
+          type: string
+          enum: [catalog_only, stubbed, ready]
+        createdAt:
+          type: string
+          format: date-time
+        capabilities:
+          $ref: '#/components/schemas/ProviderCapabilities'
+      required: [id, name, type, displayName, isActive, supportsTestnet, adapterStatus, capabilities]
+    ProviderCatalogResponse:
+      type: object
+      properties:
+        providers:
+          type: array
+          items:
+            $ref: '#/components/schemas/Provider'
+      required: [providers]
     HealthResponse:
       type: object
       properties:
