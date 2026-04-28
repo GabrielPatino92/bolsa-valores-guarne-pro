@@ -1,4 +1,4 @@
-const fallbackApiUrl = 'http://localhost:4000';
+const fallbackApiUrl = 'http://localhost:4000/api/v1';
 const fallbackWsUrl = 'ws://localhost:4000';
 
 export const env = {

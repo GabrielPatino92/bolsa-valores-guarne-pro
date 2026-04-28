@@ -20,6 +20,24 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE auth_refresh_tokens (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    token_hash VARCHAR(128) UNIQUE NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    revoked_at TIMESTAMPTZ,
+    replaced_by_token_id UUID REFERENCES auth_refresh_tokens(id),
+    user_agent TEXT,
+    ip_address INET,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX idx_auth_refresh_tokens_user_id
+    ON auth_refresh_tokens (user_id);
+
+CREATE INDEX idx_auth_refresh_tokens_expires_at
+    ON auth_refresh_tokens (expires_at);
+
 CREATE TYPE provider_type AS ENUM ('crypto', 'forex', 'stocks', 'futures');
 CREATE TYPE provider_name AS ENUM ('binance', 'okx', 'ibkr', 'coinbase');
 
