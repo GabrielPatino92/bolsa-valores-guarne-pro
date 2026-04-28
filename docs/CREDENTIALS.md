@@ -33,6 +33,8 @@ Este documento reemplaza la gu?a legacy de NestJS/Next.js.
 - `GET /api/v1/users/me`
 - `GET /api/v1/providers`
 - `GET /api/v1/providers/:providerName`
+- `GET /api/v1/market-data/symbols?provider=binance`
+- `GET /api/v1/market-data/candles?provider=binance&symbol=BTCUSDT&timeframe=1m`
 
 ### Ejemplo de registro
 ```http
@@ -108,5 +110,5 @@ docker compose -f infra/docker-compose.dev.yml logs -f postgres
 ## Seguridad / alcance
 
 - Las credenciales aqu? listadas son solo para desarrollo local.
-- El cat?logo de proveedores **no** implica que ya existan SDKs operativos.
-- Los adapters reales vendr?n en issues posteriores; hoy existen fronteras y stubs.
+- El cat?logo de proveedores ya tiene un primer adapter real de market data para Binance Spot REST.
+- Los dem?s adapters siguen siendo stubs hasta nuevos issues.

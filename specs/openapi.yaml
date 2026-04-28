@@ -1,10 +1,10 @@
 openapi: 3.1.0
 info:
   title: Guarne Pro API
-  version: 0.3.0
+  version: 0.4.0
   description: >-
     Backend JavaScript-first en Fastify para Guarne Pro.
-    Este contrato cubre health, auth, users y providers con persistencia de refresh tokens.
+    Este contrato cubre health, auth, users, providers y market data con persistencia de refresh tokens.
 servers:
   - url: http://localhost:4000
     description: Local development
@@ -13,6 +13,7 @@ tags:
   - name: Auth
   - name: Users
   - name: Providers
+  - name: Market Data
 paths:
   /health:
     get:
@@ -142,6 +143,82 @@ paths:
                 required: [provider]
         '404':
           $ref: '#/components/responses/NotFound'
+  /api/v1/market-data/symbols:
+    get:
+      tags: [Market Data]
+      summary: Return available market symbols for a provider
+      parameters:
+        - in: query
+          name: provider
+          required: true
+          schema:
+            type: string
+            enum: [binance, okx, coinbase, ibkr]
+      responses:
+        '200':
+          description: Provider market symbols
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketSymbolsResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+  /api/v1/market-data/candles:
+    get:
+      tags: [Market Data]
+      summary: Return historical candles for a provider symbol and timeframe
+      parameters:
+        - in: query
+          name: provider
+          required: true
+          schema:
+            type: string
+            enum: [binance, okx, coinbase, ibkr]
+        - in: query
+          name: symbol
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: timeframe
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 500
+        - in: query
+          name: startTime
+          required: false
+          schema:
+            type: integer
+        - in: query
+          name: endTime
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Historical candles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MarketCandlesResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '501':
+          $ref: '#/components/responses/NotImplemented'
+        '502':
+          $ref: '#/components/responses/BadGateway'
 components:
   securitySchemes:
     bearerAuth:
@@ -169,6 +246,18 @@ components:
             $ref: '#/components/schemas/ErrorResponse'
     NotFound:
       description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    NotImplemented:
+      description: Capability is not implemented yet
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+    BadGateway:
+      description: Upstream provider request failed
       content:
         application/json:
           schema:
@@ -287,6 +376,66 @@ components:
           items:
             $ref: '#/components/schemas/Provider'
       required: [providers]
+    MarketSymbol:
+      type: object
+      properties:
+        symbol:
+          type: string
+        baseAsset:
+          type: string
+        quoteAsset:
+          type: string
+        status:
+          type: string
+      required: [symbol, baseAsset, quoteAsset, status]
+    MarketSymbolsResponse:
+      type: object
+      properties:
+        provider:
+          type: string
+        count:
+          type: integer
+        symbols:
+          type: array
+          items:
+            $ref: '#/components/schemas/MarketSymbol'
+      required: [provider, count, symbols]
+    Candle:
+      type: object
+      properties:
+        symbol:
+          type: string
+        timeframe:
+          type: string
+        timestamp:
+          type: integer
+        open:
+          type: number
+        high:
+          type: number
+        low:
+          type: number
+        close:
+          type: number
+        volume:
+          type: number
+      required: [symbol, timeframe, timestamp, open, high, low, close, volume]
+    MarketCandlesResponse:
+      type: object
+      properties:
+        provider:
+          type: string
+        symbol:
+          type: string
+        timeframe:
+          type: string
+        count:
+          type: integer
+        candles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Candle'
+      required: [provider, symbol, timeframe, count, candles]
     HealthResponse:
       type: object
       properties:

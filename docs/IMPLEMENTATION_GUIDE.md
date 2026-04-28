@@ -35,6 +35,7 @@ Ya existe la frontera inicial para:
 - cat?logo de proveedores
 - resoluci?n de adapters por capacidad
 - stubs de Binance, OKX, Coinbase e IBKR
+- primer adapter real de market data para Binance Spot REST
 
 ### Capacidades modeladas
 - `marketData`
@@ -45,10 +46,10 @@ Ya existe la frontera inicial para:
 
 ## Orden recomendado de implementaci?n real
 
-1. Elegir el **primer proveedor real**
-2. Implementar **market data** detr?s del registry
+1. Consolidar persistencia/cache de velas hist?ricas
+2. A?adir streaming websocket y resincronizaci?n
 3. Dise?ar persistencia de credenciales/conexiones por usuario
-4. Solo despu?s conectar dashboard o backtesting UI a esos adapters
+4. Luego conectar dashboard o backtesting UI a esos adapters
 
 ## Referencias vivas
 

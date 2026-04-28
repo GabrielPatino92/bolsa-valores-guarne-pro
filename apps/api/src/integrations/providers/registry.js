@@ -42,9 +42,9 @@ function buildDescriptor({
   };
 }
 
-function createDefaultDescriptors() {
+function createDefaultDescriptors(options = {}) {
   const binanceMarketData = assertMarketDataAdapter(
-    createBinanceMarketDataAdapter(),
+    createBinanceMarketDataAdapter(options.binance ?? {}),
     'binance'
   );
   const okxMarketData = assertMarketDataAdapter(
@@ -118,7 +118,7 @@ function createDefaultDescriptors() {
   ];
 }
 
-export function createProviderRegistry(descriptors = createDefaultDescriptors()) {
+export function createProviderRegistry(options = {}, descriptors = createDefaultDescriptors(options)) {
   const registry = new Map(descriptors.map((descriptor) => [descriptor.name, descriptor]));
 
   return {

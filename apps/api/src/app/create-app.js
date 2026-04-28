@@ -13,6 +13,7 @@ import { authRoutes } from '../modules/auth/routes.js';
 import { usersRoutes } from '../modules/users/routes.js';
 import { createPgProviderRepository } from '../modules/providers/repository.js';
 import { providersRoutes } from '../modules/providers/routes.js';
+import { marketDataRoutes } from '../modules/market-data/routes.js';
 
 export async function createApp(options = {}) {
   const env = loadEnv({
@@ -38,7 +39,13 @@ export async function createApp(options = {}) {
   const providerRepository =
     options.providerRepository ?? createPgProviderRepository({ pool });
   const providerRegistry =
-    options.providerRegistry ?? createProviderRegistry();
+    options.providerRegistry ??
+    createProviderRegistry({
+      binance: {
+        baseUrl: env.binanceMarketDataBaseUrl,
+        timeoutMs: env.binanceMarketDataTimeoutMs
+      }
+    });
 
   app.decorate('config', env);
   app.decorate('db', pool);
@@ -59,6 +66,9 @@ export async function createApp(options = {}) {
   });
   await app.register(providersRoutes, {
     prefix: `${env.apiPrefix}/providers`
+  });
+  await app.register(marketDataRoutes, {
+    prefix: `${env.apiPrefix}/market-data`
   });
 
   app.addHook('onClose', async () => {

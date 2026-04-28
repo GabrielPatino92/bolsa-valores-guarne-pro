@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createApp } from '../src/app/create-app.js';
 import { createProviderRegistry } from '../src/integrations/providers/registry.js';
+import { createBinanceMarketDataAdapter } from '../src/integrations/providers/providers/binance/market-data.js';
 import { createMemoryProviderRepository } from './helpers/create-memory-provider-repository.js';
 import { createMemoryRefreshTokenRepository } from './helpers/create-memory-refresh-token-repository.js';
 import { createMemoryUserRepository } from './helpers/create-memory-user-repository.js';
@@ -45,14 +46,16 @@ function createFakePool() {
   };
 }
 
-function createTestApp() {
+function createTestApp(overrides = {}) {
   return createApp({
     env: testEnv,
     pool: createFakePool(),
-    userRepository: createMemoryUserRepository(),
-    refreshTokenRepository: createMemoryRefreshTokenRepository(),
-    providerRepository: createMemoryProviderRepository(providerSeed),
-    providerRegistry: createProviderRegistry()
+    userRepository: overrides.userRepository ?? createMemoryUserRepository(),
+    refreshTokenRepository:
+      overrides.refreshTokenRepository ?? createMemoryRefreshTokenRepository(),
+    providerRepository:
+      overrides.providerRepository ?? createMemoryProviderRepository(providerSeed),
+    providerRegistry: overrides.providerRegistry ?? createProviderRegistry()
   });
 }
 
@@ -174,13 +177,174 @@ test('provider catalog exposes capabilities and registry boundaries', async (t) 
 
   assert.equal(providerResponse.statusCode, 200);
   assert.equal(providerResponse.json().provider.name, 'binance');
+});
 
-  const registry = createProviderRegistry();
-  const marketDataAdapter = registry.resolveAdapter('binance', 'marketData');
-  assert.equal(marketDataAdapter.providerName, 'binance');
+test('market-data routes resolve provider-aware adapters and validate query bounds', async (t) => {
+  const fakeMarketDataAdapter = {
+    async getSymbols() {
+      return [
+        {
+          symbol: 'BTCUSDT',
+          baseAsset: 'BTC',
+          quoteAsset: 'USDT',
+          status: 'TRADING'
+        }
+      ];
+    },
+    async getCandles({ symbol, timeframe, limit }) {
+      return [
+        {
+          symbol,
+          timeframe,
+          timestamp: 1710000000000,
+          open: 1,
+          high: 2,
+          low: 0.5,
+          close: 1.5,
+          volume: 100
+        }
+      ].slice(0, Math.min(limit, 1));
+    }
+  };
 
-  assert.throws(
-    () => registry.resolveAdapter('binance', 'accountData'),
-    /does not expose the accountData adapter yet/
+  const providerRegistry = {
+    describe(providerName) {
+      if (providerName !== 'binance') {
+        return null;
+      }
+
+      return {
+        name: 'binance',
+        capabilities: {
+          marketData: true,
+          accountData: false,
+          orderExecution: false,
+          paperTrading: false,
+          websocket: false
+        },
+        adapterStatus: 'ready'
+      };
+    },
+    resolveAdapter(providerName, capability) {
+      assert.equal(providerName, 'binance');
+      assert.equal(capability, 'marketData');
+      return fakeMarketDataAdapter;
+    }
+  };
+
+  const app = await createTestApp({ providerRegistry });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const symbolsResponse = await app.inject({
+    method: 'GET',
+    url: '/api/v1/market-data/symbols?provider=binance'
+  });
+
+  assert.equal(symbolsResponse.statusCode, 200);
+  const symbolsBody = symbolsResponse.json();
+  assert.equal(symbolsBody.provider, 'binance');
+  assert.equal(symbolsBody.count, 1);
+  assert.equal(symbolsBody.symbols[0].symbol, 'BTCUSDT');
+
+  const candlesResponse = await app.inject({
+    method: 'GET',
+    url: '/api/v1/market-data/candles?provider=binance&symbol=btcusdt&timeframe=1m&limit=1'
+  });
+
+  assert.equal(candlesResponse.statusCode, 200);
+  const candlesBody = candlesResponse.json();
+  assert.equal(candlesBody.provider, 'binance');
+  assert.equal(candlesBody.symbol, 'BTCUSDT');
+  assert.equal(candlesBody.timeframe, '1m');
+  assert.equal(candlesBody.count, 1);
+  assert.equal(candlesBody.candles[0].close, 1.5);
+
+  const invalidResponse = await app.inject({
+    method: 'GET',
+    url: '/api/v1/market-data/candles?provider=binance&symbol=BTCUSDT&timeframe=1m&limit=1001'
+  });
+
+  assert.equal(invalidResponse.statusCode, 400);
+  assert.equal(invalidResponse.json().error.code, 'validation_error');
+});
+
+test('binance market-data adapter maps exchangeInfo and klines responses', async () => {
+  const payloads = {
+    exchangeInfo: {
+      symbols: [
+        {
+          symbol: 'BTCUSDT',
+          status: 'TRADING',
+          baseAsset: 'BTC',
+          quoteAsset: 'USDT',
+          isSpotTradingAllowed: true
+        },
+        {
+          symbol: 'FOOUSD',
+          status: 'BREAK',
+          baseAsset: 'FOO',
+          quoteAsset: 'USD',
+          isSpotTradingAllowed: true
+        }
+      ]
+    },
+    klines: [
+      [1710000000000, '1.0', '2.0', '0.5', '1.5', '100.0'],
+      [1710000060000, '1.5', '2.5', '1.2', '2.0', '110.0']
+    ]
+  };
+
+  const fetchImpl = async (url) => {
+    const target = new URL(url);
+
+    if (target.pathname.endsWith('/exchangeInfo')) {
+      return new Response(JSON.stringify(payloads.exchangeInfo), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
+    if (target.pathname.endsWith('/klines')) {
+      return new Response(JSON.stringify(payloads.klines), {
+        status: 200,
+        headers: { 'content-type': 'application/json' }
+      });
+    }
+
+    throw new Error(`Unexpected URL in test: ${target}`);
+  };
+
+  const adapter = createBinanceMarketDataAdapter({
+    baseUrl: 'https://data-api.binance.vision',
+    fetchImpl,
+    timeoutMs: 5000
+  });
+
+  const symbols = await adapter.getSymbols();
+  assert.equal(symbols.length, 1);
+  assert.equal(symbols[0].symbol, 'BTCUSDT');
+
+  const candles = await adapter.getCandles({
+    symbol: 'BTCUSDT',
+    timeframe: '1m',
+    limit: 2
+  });
+
+  assert.equal(candles.length, 2);
+  assert.equal(candles[0].timeframe, '1m');
+  assert.equal(candles[0].open, 1);
+  assert.equal(candles[1].close, 2);
+
+  await assert.rejects(
+    () =>
+      adapter.getCandles({
+        symbol: 'BTCUSDT',
+        timeframe: '2m',
+        limit: 2
+      }),
+    /Binance does not support timeframe 2m/
   );
 });

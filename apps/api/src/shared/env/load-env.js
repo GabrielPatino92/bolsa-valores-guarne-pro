@@ -24,6 +24,8 @@ const envSchema = z.object({
     .default('change-this-refresh-token-secret-min-32-chars-for-production'),
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   CORS_ORIGINS: z.string().default('http://localhost:5173,http://localhost:4173'),
+  BINANCE_MARKET_DATA_BASE_URL: z.string().url().default('https://data-api.binance.vision'),
+  BINANCE_MARKET_DATA_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),
   RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60000),
   RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(100),
   RATE_LIMIT_AUTHENTICATED_MAX: z.coerce.number().int().positive().default(1000)
@@ -81,6 +83,8 @@ export function loadEnv(source = process.env) {
     corsOrigins: parsed.CORS_ORIGINS.split(',')
       .map((value) => value.trim())
       .filter(Boolean),
+    binanceMarketDataBaseUrl: parsed.BINANCE_MARKET_DATA_BASE_URL,
+    binanceMarketDataTimeoutMs: parsed.BINANCE_MARKET_DATA_TIMEOUT_MS,
     rateLimitWindowMs: parsed.RATE_LIMIT_WINDOW_MS,
     rateLimitMaxRequests: parsed.RATE_LIMIT_MAX_REQUESTS,
     rateLimitAuthenticatedMax: parsed.RATE_LIMIT_AUTHENTICATED_MAX
