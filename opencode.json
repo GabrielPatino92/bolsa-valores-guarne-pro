@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "architect",
+  "permission": {
+    "edit": "ask",
+    "webfetch": "ask",
+    "websearch": "ask",
+    "external_directory": "ask",
+    "bash": {
+      "*": "ask",
+      "pwd": "allow",
+      "ls*": "allow",
+      "git status*": "allow",
+      "git diff*": "allow",
+      "git rev-parse*": "allow",
+      "git branch*": "allow",
+      "git log --oneline*": "allow",
+      "pnpm run ai:doctor*": "allow",
+      "npm run ai:doctor*": "allow",
+      "corepack pnpm run ai:doctor*": "allow"
+    }
+  }
+}

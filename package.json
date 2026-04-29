@@ -2,7 +2,7 @@
   "name": "bolsa-valores-guarne-pro",
   "version": "1.0.0",
   "private": true,
-  "description": "Plataforma profesional de trading consolidado - Arquitectura de microservicios",
+  "description": "Plataforma profesional de trading - monorepo JavaScript-first en transici?n",
   "author": "Equipo Guarne Pro",
   "license": "UNLICENSED",
   "scripts": {
@@ -10,6 +10,7 @@
     "dev:web": "pnpm --filter web dev",
     "dev:api": "pnpm --filter api start:dev",
     "dev:worker": "pnpm --filter worker dev",
+    "ai:doctor": "node scripts/ai-stack-doctor.mjs",
     "build": "turbo run build",
     "build:web": "pnpm --filter web build",
     "build:api": "pnpm --filter api build",
@@ -21,7 +22,7 @@
     "test:integration": "turbo run test:integration",
     "test:e2e": "pnpm --filter web test:e2e",
     "clean": "turbo run clean && rm -rf node_modules",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "format": "prettier --write \"**/*.{js,jsx,mjs,cjs,ts,tsx,md,json,yaml,yml}\"",
     "docker:up": "docker compose -f infra/docker-compose.dev.yml up -d",
     "docker:down": "docker compose -f infra/docker-compose.dev.yml down",
     "docker:logs": "docker compose -f infra/docker-compose.dev.yml logs -f",
@@ -54,7 +55,12 @@
   },
   "packageManager": "pnpm@8.15.0",
   "lint-staged": {
-    "*.{js,jsx,ts,tsx}": ["eslint --fix", "prettier --write"],
-    "*.{json,md}": ["prettier --write"]
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }

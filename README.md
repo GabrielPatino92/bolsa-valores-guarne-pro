@@ -1,229 +1,141 @@
-# 🚀 Bolsa de Valores Guarne Pro
+# Bolsa de Valores Guarne Pro
 
-Plataforma profesional de trading consolidado con arquitectura de microservicios.
+Plataforma de trading en construcción con una arquitectura base aprobada para evolucionar de forma ordenada.
 
-> **🎯 ¿Primera vez aquí?** Lee la [Guía de Inicio Rápido](./QUICK_START.md) para tener todo funcionando en 5 minutos.
+> **Estado actual**
+>
+> Este repositorio contiene artefactos legacy orientados a Next.js/NestJS/TypeScript, pero la **arquitectura aprobada a partir del 27 de abril de 2026** es:
+>
+> - monorepo con `pnpm` + `turbo`
+> - `apps/web` con **React + Vite + JavaScript**
+> - `apps/api` con **Node.js + PostgreSQL + JWT**
+> - **OpenAPI-first** como contrato de API
+> - adapters para brokers/plataformas de trading
 
-## 🏗️ Arquitectura
+## Arquitectura aprobada
 
-- **Monorepo**: pnpm workspaces + Turbo
-- **Frontend**: Next.js 14 + TypeScript + Tailwind
-- **Backend**: NestJS + TypeScript + Clean Architecture
-- **Base de Datos**: PostgreSQL 15 + TimescaleDB
-- **Cache**: Redis 7
-- **Observabilidad**: Prometheus + Grafana + OpenTelemetry
+### Baseline
 
-## 📦 Estructura del Proyecto
-```
+- **Monorepo**: `pnpm workspaces` + `turbo`
+- **Frontend target**: React + Vite + JavaScript
+- **Backend target**: Node.js modular monolith
+- **Database**: PostgreSQL
+- **Auth**: JWT (access + refresh)
+- **API contract**: OpenAPI-first
+- **API exploration**: Swagger UI
+- **API lint/docs**: Redocly
+
+### Decisión importante
+
+La implementación inicial será **JavaScript-first, sin TypeScript**.
+
+Eso obliga a compensar con:
+
+- validación explícita en límites de entrada/salida
+- contratos OpenAPI mantenidos
+- smoke tests y verificación dirigida
+- manejo centralizado de errores
+- límites de módulos claros
+
+## Estructura del repo
+
+```text
 bolsa-valores-guarne-pro/
 ├── apps/
-│   ├── web/          # Frontend Next.js
-│   ├── api/          # Backend NestJS  
-│   ├── worker/       # Background jobs
-│   └── mobile/       # React Native + Expo
-├── packages/
-│   ├── ui/           # Componentes compartidos
-│   ├── sdk/          # Cliente API TypeScript
-│   ├── indicators/   # Indicadores técnicos
-│   └── config/       # Configuración compartida
-└── infra/            # Docker & configs
+│   ├── web/         # Target: React + Vite + JavaScript
+│   └── api/         # Target: Node.js + PostgreSQL + JWT
+├── packages/        # Reuso real y justificado
+├── infra/           # Docker, Postgres y soporte local
+├── docs/            # Specs, tasks, decisiones y runbooks
+├── scripts/         # Utilidades locales y verificación
+├── AGENTS.md        # Contrato operativo para agentes
+└── opencode.json    # Configuración de proyecto para OpenCode
 ```
 
-## 🚀 Instalación Rápida
+## Workflow cognitivo / SDD
+
+Este repo se opera con:
+
+- **OpenCode**
+- **Engram**
+- **OpenClaw**
+- **Spec-Driven Development**
+- **Human in the Loop**
+
+### Gate obligatorio antes de editar código
+
+1. Explorer
+2. Proposer
+3. Spec Writer & Designer
+4. Task Planner
+5. **Aprobación humana explícita**
+6. Implementer
+7. Verifier
+8. Archiver
+
+Lee:
+
+- [`AGENTS.md`](./AGENTS.md)
+- [`docs/ai/sdd-orchestrator.md`](./docs/ai/sdd-orchestrator.md)
+
+## Doctor del bootstrap
+
+Para validar que el bootstrap cognitivo está instalado:
+
 ```bash
-# 1. Copiar variables de entorno
-cp .env.example .env.local
-
-# 2. Instalar dependencias
-pnpm install
-
-# 3. Levantar infraestructura
-pnpm docker:up
-
-# 4. Esperar 30 segundos
-
-# 5. Iniciar desarrollo
-pnpm dev:api    # Terminal 1
-pnpm dev:web    # Terminal 2
+corepack pnpm run ai:doctor
+# o, si solo quieres validar el bootstrap local
+npm run ai:doctor
 ```
 
-## 🌐 URLs de Desarrollo
+Debe devolver:
 
-| Servicio | URL | Credenciales |
-|----------|-----|--------------|
-| **Frontend** | http://localhost:3000 | - |
-| **API Docs** | http://localhost:4000/api/docs | - |
-| **Grafana** | http://localhost:3001 | admin / admin_guarne_2024 |
-| **Prometheus** | http://localhost:9090 | - |
+- `"ok": true`
+- `"defaultAgent": "architect"`
 
-## 👤 Credenciales Demo
+## OpenAPI / Swagger
 
-- **Email**: demo@guarne.pro
-- **Password**: Demo2024!
+El contrato público del backend debe definirse en OpenAPI.
 
-## 📚 Comandos Disponibles
+Principio:
 
-### Desarrollo
+- **OpenAPI** = contrato
+- **Swagger UI** = exploración y prueba
+- **Redocly** = lint y documentación
+
+Scripts ya presentes en el repo:
+
 ```bash
-pnpm dev              # Todo en paralelo
-pnpm dev:web          # Solo frontend
-pnpm dev:api          # Solo backend
-pnpm dev:worker       # Solo worker
+corepack pnpm api:docs
+corepack pnpm api:lint
+corepack pnpm generate:sdk
 ```
 
-### Build & Deploy
-```bash
-pnpm build            # Build todo
-pnpm build:web        # Solo frontend
-pnpm build:api        # Solo backend
-```
+## Documentos base de arquitectura
 
-### Calidad de Código
-```bash
-pnpm lint             # Ejecutar ESLint
-pnpm lint:fix         # Fix automático
-pnpm type-check       # TypeScript check
-pnpm format           # Prettier format
-pnpm test             # Run tests
-pnpm test:unit        # Solo unitarios
-pnpm test:integration # Solo integración
-pnpm test:e2e         # End-to-end
-```
+- [`docs/specs/2026-04-27-monorepo-js-baseline-openapi.md`](./docs/specs/2026-04-27-monorepo-js-baseline-openapi.md)
+- [`docs/tasks/2026-04-27-monorepo-js-baseline-openapi.md`](./docs/tasks/2026-04-27-monorepo-js-baseline-openapi.md)
+- [`docs/decisions/2026-04-27-js-monorepo-baseline.md`](./docs/decisions/2026-04-27-js-monorepo-baseline.md)
 
-### Base de Datos
-```bash
-pnpm db:migrate       # Ejecutar migraciones
-pnpm db:seed          # Poblar con datos
-pnpm db:reset         # Reset completo
-```
+## Backlog guía
 
-### Docker
-```bash
-pnpm docker:up        # Levantar servicios
-pnpm docker:down      # Detener servicios
-pnpm docker:logs      # Ver logs
-pnpm docker:restart   # Reiniciar todo
-```
+Issues base:
 
-### API
-```bash
-pnpm api:docs         # Abrir docs OpenAPI
-pnpm api:lint         # Validar spec
-pnpm generate:sdk     # Generar cliente
-```
+- [#11 arquitectura base](https://github.com/GabrielPatino92/bolsa-valores-guarne-pro/issues/11)
+- [#12 bootstrap cognitivo](https://github.com/GabrielPatino92/bolsa-valores-guarne-pro/issues/12)
+- [#13 frontend React + Vite](https://github.com/GabrielPatino92/bolsa-valores-guarne-pro/issues/13)
+- [#14 backend Node + PostgreSQL + JWT](https://github.com/GabrielPatino92/bolsa-valores-guarne-pro/issues/14)
+- [#15 seguridad, datos y JWT](https://github.com/GabrielPatino92/bolsa-valores-guarne-pro/issues/15)
+- [#16 runbook operativo](https://github.com/GabrielPatino92/bolsa-valores-guarne-pro/issues/16)
+- [#17 adapters de brokers](https://github.com/GabrielPatino92/bolsa-valores-guarne-pro/issues/17)
 
-## 🏛️ Principios de Arquitectura
+## Nota de transición
 
-### Clean Architecture
-- **Domain Layer**: Entities & Business Logic
-- **Application Layer**: Use Cases
-- **Infrastructure Layer**: External Services
-- **Presentation Layer**: Controllers & DTOs
+Si encuentras referencias a:
 
-### Design Patterns
-- **Repository Pattern**: Abstracción de datos
-- **Factory Pattern**: Creación de objetos
-- **Strategy Pattern**: Algoritmos intercambiables
-- **Observer Pattern**: Eventos en tiempo real
-- **Dependency Injection**: Inversión de control
+- Next.js
+- NestJS
+- TypeScript
+- Clean Architecture previa
 
-## 🔒 Seguridad
-
-- ✅ OWASP ASVS L2+ compliance
-- ✅ Autenticación OIDC + 2FA
-- ✅ JWT con rotación de tokens
-- ✅ Rate limiting por IP/usuario
-- ✅ CSP, HSTS, CORS configurados
-- ✅ Validación estricta (zod/class-validator)
-- ✅ Secrets via variables de entorno
-- ✅ Audit log de acciones críticas
-
-## 📊 Observabilidad
-
-### Métricas (Prometheus)
-- Latencia de endpoints (p50, p95, p99)
-- Throughput de requests
-- Errores por tipo
-- Uso de recursos
-
-### Trazas (OpenTelemetry)
-- Request tracing end-to-end
-- Distributed tracing
-- Performance bottlenecks
-
-### Logs
-- Structured logging (JSON)
-- Log levels configurables
-- Sin datos sensibles
-
-## 🧪 Testing Strategy
-
-### Pirámide de Tests
-1. **Unitarios** (70%): Jest/Vitest
-2. **Integración** (20%): Testcontainers
-3. **E2E** (10%): Playwright/Cypress
-
-### Cobertura Objetivo
-- **Crítico**: ≥ 90%
-- **Core**: ≥ 80%
-- **Auxiliar**: ≥ 60%
-
-## 📱 Mobile (React Native)
-```bash
-cd apps/mobile
-pnpm start
-```
-
-- iOS: Presiona `i`
-- Android: Presiona `a`
-- Web: Presiona `w`
-
-## 🛣️ Roadmap
-
-### Sprint 1 (Actual)
-- [x] Setup monorepo
-- [x] Infraestructura Docker
-- [x] Schemas de base de datos
-- [ ] Auth con 2FA
-- [ ] Conexión Binance Testnet
-- [ ] Dashboard básico
-
-### Sprint 2
-- [ ] Gráficos con Lightweight Charts
-- [ ] Stream de precios real-time
-- [ ] Competencias (CRUD + leaderboard)
-- [ ] Backtest simple
-
-### Sprint 3
-- [ ] Indicadores avanzados
-- [ ] Exportaciones CSV/Parquet
-- [ ] Adapter OKX
-- [ ] Tests E2E completos
-
-## 📖 Documentación Adicional
-
-- [Arquitectura](./docs/architecture/README.md)
-- [ADRs](./docs/ADRs/README.md)
-- [API Docs](./specs/openapi.yaml)
-- [Deployment](./docs/deployment/README.md)
-
-## ⚠️ Importante
-
-**SOLO DESARROLLO**
-- ❌ NO usar en producción
-- ❌ NO dinero real
-- ✅ Solo testnet/paper accounts
-- ✅ Claves read-only únicamente
-- ✅ Cumplir TOS de proveedores
-
-## 📞 Soporte
-
-- **Docs**: https://docs.guarne.pro
-- **Issues**: https://github.com/guarne-pro/issues
-- **Email**: dev@guarne.pro
-
----
-
-**Zona Horaria**: America/Bogota  
-**Versión**: 1.0.0  
-**Licencia**: Propietario (DEV only)
+trátalas como **estado legacy o en transición**, no como baseline final aprobado para el nuevo rumbo del proyecto.

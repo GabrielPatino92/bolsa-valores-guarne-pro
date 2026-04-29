@@ -65,7 +65,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '1 segundo',
     category: TimeframeCategory.SECONDS,
     seconds: 1,
-    binanceInterval: '1s',
+    providerIntervals: { binance: '1s' },
     description: 'Vela de 1 segundo',
   },
   '5S': {
@@ -110,7 +110,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '1 minuto',
     category: TimeframeCategory.MINUTES,
     seconds: 60,
-    binanceInterval: '1m',
+    providerIntervals: { binance: '1m' },
     description: 'Vela de 1 minuto - Scalping',
   },
   '2m': {
@@ -125,7 +125,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '3 minutos',
     category: TimeframeCategory.MINUTES,
     seconds: 180,
-    binanceInterval: '3m',
+    providerIntervals: { binance: '3m' },
     description: 'Vela de 3 minutos',
   },
   '5m': {
@@ -133,7 +133,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '5 minutos',
     category: TimeframeCategory.MINUTES,
     seconds: 300,
-    binanceInterval: '5m',
+    providerIntervals: { binance: '5m' },
     description: 'Vela de 5 minutos - Scalping',
   },
   '10m': {
@@ -148,7 +148,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '15 minutos',
     category: TimeframeCategory.MINUTES,
     seconds: 900,
-    binanceInterval: '15m',
+    providerIntervals: { binance: '15m' },
     description: 'Vela de 15 minutos - Intraday',
   },
   '30m': {
@@ -156,7 +156,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '30 minutos',
     category: TimeframeCategory.MINUTES,
     seconds: 1800,
-    binanceInterval: '30m',
+    providerIntervals: { binance: '30m' },
     description: 'Vela de 30 minutos - Intraday',
   },
   '45m': {
@@ -173,7 +173,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '1 hora',
     category: TimeframeCategory.HOURS,
     seconds: 3600,
-    binanceInterval: '1h',
+    providerIntervals: { binance: '1h' },
     description: 'Vela de 1 hora - Day Trading',
   },
   '2h': {
@@ -181,7 +181,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '2 horas',
     category: TimeframeCategory.HOURS,
     seconds: 7200,
-    binanceInterval: '2h',
+    providerIntervals: { binance: '2h' },
     description: 'Vela de 2 horas',
   },
   '3h': {
@@ -196,7 +196,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '4 horas',
     category: TimeframeCategory.HOURS,
     seconds: 14400,
-    binanceInterval: '4h',
+    providerIntervals: { binance: '4h' },
     description: 'Vela de 4 horas - Swing Trading',
   },
 
@@ -206,7 +206,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '1 día',
     category: TimeframeCategory.DAYS,
     seconds: 86400,
-    binanceInterval: '1d',
+    providerIntervals: { binance: '1d' },
     description: 'Vela diaria - Position Trading',
   },
 
@@ -216,7 +216,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '1 semana',
     category: TimeframeCategory.WEEKS,
     seconds: 604800,
-    binanceInterval: '1w',
+    providerIntervals: { binance: '1w' },
     description: 'Vela semanal - Position Trading',
   },
 
@@ -226,7 +226,7 @@ export const TIMEFRAMES: Record<string, Timeframe> = {
     label: '1 mes',
     category: TimeframeCategory.MONTHS,
     seconds: 2592000,
-    binanceInterval: '1M',
+    providerIntervals: { binance: '1M' },
     description: 'Vela mensual - Inversión largo plazo',
   },
   '3M': {
@@ -339,19 +339,30 @@ export function getTimeframe(id: string): Timeframe | undefined {
 }
 
 /**
- * Helper para validar si un timeframe es soportado por Binance
+ * Helper gen?rico para validar si un timeframe expone mapping para un proveedor.
  */
-export function isBinanceSupported(timeframeId: string): boolean {
+export function supportsProviderInterval(providerName: ProviderName, timeframeId: string): boolean {
   const tf = TIMEFRAMES[timeframeId];
-  return tf?.binanceInterval !== undefined;
+  return tf?.providerIntervals?.[providerName] !== undefined;
 }
 
 /**
- * Convertir timeframe a intervalo de Binance
+ * Convertir timeframe al intervalo espec?fico de un proveedor.
  */
-export function toBinanceInterval(timeframeId: string): string | null {
+export function toProviderInterval(providerName: ProviderName, timeframeId: string): string | null {
   const tf = TIMEFRAMES[timeframeId];
-  return tf?.binanceInterval || null;
+  return tf?.providerIntervals?.[providerName] || null;
+}
+
+/**
+ * Wrappers de compatibilidad para el c?digo legacy que a?n asume Binance.
+ */
+export function isBinanceSupported(timeframeId: string): boolean {
+  return supportsProviderInterval('binance', timeframeId);
+}
+
+export function toBinanceInterval(timeframeId: string): string | null {
+  return toProviderInterval('binance', timeframeId);
 }
 
 /**
