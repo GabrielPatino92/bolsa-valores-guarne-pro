@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createApp } from '../src/app/create-app.js';
 import { createProviderRegistry } from '../src/integrations/providers/registry.js';
 import { createBinanceMarketDataAdapter } from '../src/integrations/providers/providers/binance/market-data.js';
+import { createMemoryMarketDataRepository } from './helpers/create-memory-market-data-repository.js';
 import { createMemoryProviderRepository } from './helpers/create-memory-provider-repository.js';
 import { createMemoryRefreshTokenRepository } from './helpers/create-memory-refresh-token-repository.js';
 import { createMemoryUserRepository } from './helpers/create-memory-user-repository.js';
@@ -40,7 +41,7 @@ const providerSeed = [
 function createFakePool() {
   return {
     async query() {
-      return { rows: [{ ok: 1 }] };
+      return { rows: [{ ok: 1 }], rowCount: 1 };
     },
     async end() {}
   };
@@ -55,6 +56,8 @@ function createTestApp(overrides = {}) {
       overrides.refreshTokenRepository ?? createMemoryRefreshTokenRepository(),
     providerRepository:
       overrides.providerRepository ?? createMemoryProviderRepository(providerSeed),
+    marketDataRepository:
+      overrides.marketDataRepository ?? createMemoryMarketDataRepository(),
     providerRegistry: overrides.providerRegistry ?? createProviderRegistry()
   });
 }
@@ -179,6 +182,126 @@ test('provider catalog exposes capabilities and registry boundaries', async (t) 
   assert.equal(providerResponse.json().provider.name, 'binance');
 });
 
+test('market-data historical cache hits bypass upstream adapters', async (t) => {
+  const marketDataRepository = createMemoryMarketDataRepository({
+    candles: [
+      {
+        providerName: 'binance',
+        symbol: 'BTCUSDT',
+        timeframe: '1m',
+        timestamp: 1710000000000,
+        open: 1,
+        high: 2,
+        low: 0.5,
+        close: 1.5,
+        volume: 100
+      }
+    ],
+    coverages: [
+      {
+        providerName: 'binance',
+        symbol: 'BTCUSDT',
+        timeframe: '1m',
+        startTime: 1710000000000,
+        endTime: 1710000000000
+      }
+    ]
+  });
+
+  let upstreamCalls = 0;
+  const providerRegistry = {
+    resolveAdapter() {
+      return {
+        async getSymbols() {
+          return [];
+        },
+        async getCandles() {
+          upstreamCalls += 1;
+          return [];
+        }
+      };
+    }
+  };
+
+  const app = await createTestApp({ marketDataRepository, providerRegistry });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/v1/market-data/candles?provider=binance&symbol=BTCUSDT&timeframe=1m&limit=1&startTime=1710000000000&endTime=1710000000000'
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(upstreamCalls, 0);
+  assert.equal(response.json().candles[0].close, 1.5);
+});
+
+test('market-data cache miss hydrates repository and merges coverage', async (t) => {
+  const marketDataRepository = createMemoryMarketDataRepository();
+  let upstreamCalls = 0;
+  const providerRegistry = {
+    resolveAdapter() {
+      return {
+        async getSymbols() {
+          return [];
+        },
+        async getCandles() {
+          upstreamCalls += 1;
+          return [
+            {
+              symbol: 'BTCUSDT',
+              timeframe: '1m',
+              timestamp: 1710000000000,
+              open: 1,
+              high: 2,
+              low: 0.5,
+              close: 1.5,
+              volume: 100
+            }
+          ];
+        }
+      };
+    }
+  };
+
+  const app = await createTestApp({ marketDataRepository, providerRegistry });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: '/api/v1/market-data/candles?provider=binance&symbol=BTCUSDT&timeframe=1m&limit=1&startTime=1710000000000&endTime=1710000000000'
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(upstreamCalls, 1);
+  assert.equal(response.json().candles.length, 1);
+
+  const storedCandles = await marketDataRepository.listCandlesByRange({
+    providerName: 'binance',
+    symbol: 'BTCUSDT',
+    timeframe: '1m',
+    startTime: 1710000000000,
+    endTime: 1710000000000,
+    limit: 10
+  });
+  const hasCoverage = await marketDataRepository.hasCoverage({
+    providerName: 'binance',
+    symbol: 'BTCUSDT',
+    timeframe: '1m',
+    startTime: 1710000000000,
+    endTime: 1710000000000
+  });
+
+  assert.equal(storedCandles.length, 1);
+  assert.equal(hasCoverage, true);
+});
+
 test('market-data routes resolve provider-aware adapters and validate query bounds', async (t) => {
   const fakeMarketDataAdapter = {
     async getSymbols() {
@@ -269,6 +392,77 @@ test('market-data routes resolve provider-aware adapters and validate query boun
 
   assert.equal(invalidResponse.statusCode, 400);
   assert.equal(invalidResponse.json().error.code, 'validation_error');
+});
+
+test('recent market-data windows still refresh from upstream even with coverage', async (t) => {
+  const now = Date.now();
+  const startTime = now - 60_000;
+  const endTime = now;
+  const marketDataRepository = createMemoryMarketDataRepository({
+    candles: [
+      {
+        providerName: 'binance',
+        symbol: 'BTCUSDT',
+        timeframe: '1m',
+        timestamp: startTime,
+        open: 1,
+        high: 2,
+        low: 0.5,
+        close: 1.5,
+        volume: 100
+      }
+    ],
+    coverages: [
+      {
+        providerName: 'binance',
+        symbol: 'BTCUSDT',
+        timeframe: '1m',
+        startTime,
+        endTime: startTime
+      }
+    ]
+  });
+
+  let upstreamCalls = 0;
+  const providerRegistry = {
+    resolveAdapter() {
+      return {
+        async getSymbols() {
+          return [];
+        },
+        async getCandles() {
+          upstreamCalls += 1;
+          return [
+            {
+              symbol: 'BTCUSDT',
+              timeframe: '1m',
+              timestamp: startTime,
+              open: 1,
+              high: 2,
+              low: 0.5,
+              close: 2.25,
+              volume: 150
+            }
+          ];
+        }
+      };
+    }
+  };
+
+  const app = await createTestApp({ marketDataRepository, providerRegistry });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  const response = await app.inject({
+    method: 'GET',
+    url: `/api/v1/market-data/candles?provider=binance&symbol=BTCUSDT&timeframe=1m&limit=1&startTime=${startTime}&endTime=${endTime}`
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(upstreamCalls, 1);
+  assert.equal(response.json().candles[0].close, 2.25);
 });
 
 test('binance market-data adapter maps exchangeInfo and klines responses', async () => {

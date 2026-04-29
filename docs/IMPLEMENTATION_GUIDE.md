@@ -46,10 +46,9 @@ Ya existe la frontera inicial para:
 
 ## Orden recomendado de implementaci?n real
 
-1. Consolidar persistencia/cache de velas hist?ricas
-2. A?adir streaming websocket y resincronizaci?n
-3. Dise?ar persistencia de credenciales/conexiones por usuario
-4. Luego conectar dashboard o backtesting UI a esos adapters
+1. A?adir streaming websocket y resincronizaci?n
+2. Dise?ar persistencia de credenciales/conexiones por usuario
+3. Luego conectar dashboard o backtesting UI a esos adapters
 
 ## Referencias vivas
 

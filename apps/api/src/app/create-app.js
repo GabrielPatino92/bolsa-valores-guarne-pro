@@ -14,6 +14,10 @@ import { usersRoutes } from '../modules/users/routes.js';
 import { createPgProviderRepository } from '../modules/providers/repository.js';
 import { providersRoutes } from '../modules/providers/routes.js';
 import { marketDataRoutes } from '../modules/market-data/routes.js';
+import {
+  createPgMarketDataRepository,
+  ensurePgMarketDataStorage
+} from '../modules/market-data/repository.js';
 
 export async function createApp(options = {}) {
   const env = loadEnv({
@@ -38,6 +42,8 @@ export async function createApp(options = {}) {
     createPgRefreshTokenRepository({ pool });
   const providerRepository =
     options.providerRepository ?? createPgProviderRepository({ pool });
+  const marketDataRepository =
+    options.marketDataRepository ?? createPgMarketDataRepository({ pool });
   const providerRegistry =
     options.providerRegistry ??
     createProviderRegistry({
@@ -47,11 +53,14 @@ export async function createApp(options = {}) {
       }
     });
 
+  await ensurePgMarketDataStorage({ pool });
+
   app.decorate('config', env);
   app.decorate('db', pool);
   app.decorate('userRepository', userRepository);
   app.decorate('refreshTokenRepository', refreshTokenRepository);
   app.decorate('providerRepository', providerRepository);
+  app.decorate('marketDataRepository', marketDataRepository);
   app.decorate('providerRegistry', providerRegistry);
 
   registerErrorHandler(app);

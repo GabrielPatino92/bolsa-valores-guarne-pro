@@ -3,7 +3,9 @@ import { createMarketDataService } from './service.js';
 
 export async function marketDataRoutes(app) {
   const marketDataService = createMarketDataService({
-    providerRegistry: app.providerRegistry
+    providerRegistry: app.providerRegistry,
+    marketDataRepository: app.marketDataRepository,
+    cacheHotWindowMs: app.config.marketDataCacheHotWindowMs
   });
 
   app.get('/symbols', async (request) => {
