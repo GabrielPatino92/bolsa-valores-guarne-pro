@@ -46,9 +46,10 @@ Ya existe la frontera inicial para:
 
 ## Orden recomendado de implementaci?n real
 
-1. A?adir streaming websocket y resincronizaci?n
-2. Dise?ar persistencia de credenciales/conexiones por usuario
-3. Luego conectar dashboard o backtesting UI a esos adapters
+1. Conectar frontend/backtesting real al contrato market data existente (#22)
+2. Dise?ar persistencia de credenciales/conexiones por usuario (#23)
+3. Alinear `packages/shared` con el baseline JavaScript-first (#24)
+4. Formalizar un contrato machine-readable de websocket si hace falta m?s adelante
 
 ## Referencias vivas
 
@@ -57,3 +58,4 @@ Ya existe la frontera inicial para:
 - `docs/specs/2026-04-28-auth-data-model-jwt-alignment.md`
 - `docs/specs/2026-04-28-provider-adapter-boundaries.md`
 - `docs/decisions/2026-04-28-provider-adapter-registry.md`
+- `docs/specs/2026-04-28-binance-realtime-websocket-resync.md`

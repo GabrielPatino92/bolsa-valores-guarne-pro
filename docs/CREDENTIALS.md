@@ -25,6 +25,7 @@ Este documento reemplaza la gu?a legacy de NestJS/Next.js.
 - Base prefix: `http://localhost:4000/api/v1`
 - Docs: `http://localhost:4000/docs`
 - Health: `http://localhost:4000/health`
+- WebSocket market data: `ws://localhost:4000/ws/market-data?provider=binance&symbol=BTCUSDT&timeframe=1m`
 
 ### Endpoints disponibles hoy
 - `POST /api/v1/auth/register`
@@ -35,6 +36,26 @@ Este documento reemplaza la gu?a legacy de NestJS/Next.js.
 - `GET /api/v1/providers/:providerName`
 - `GET /api/v1/market-data/symbols?provider=binance`
 - `GET /api/v1/market-data/candles?provider=binance&symbol=BTCUSDT&timeframe=1m`
+- `WS /ws/market-data?provider=binance&symbol=BTCUSDT&timeframe=1m`
+
+
+### WebSocket messages
+El backend emite mensajes JSON normalizados del dominio:
+- `status`
+- `snapshot`
+- `kline`
+- `error`
+
+Ejemplo de conexi?n desde navegador:
+```js
+const socket = new WebSocket(
+  'ws://localhost:4000/ws/market-data?provider=binance&symbol=BTCUSDT&timeframe=1m'
+);
+
+socket.addEventListener('message', (event) => {
+  console.log(JSON.parse(event.data));
+});
+```
 
 ### Ejemplo de registro
 ```http
@@ -70,6 +91,7 @@ La app oficial ahora es **React + Vite + JavaScript**.
 ### Estado actual
 - Home, login, dashboard y backtesting son placeholders controlados.
 - El frontend todav?a no consume el cat?logo de proveedores de forma real.
+- El frontend ya puede apuntar a `VITE_WS_URL=ws://localhost:4000` para el stream de market data.
 - Las integraciones con brokers quedan detr?s del backend (`issue #17`).
 
 ## PostgreSQL
@@ -110,5 +132,5 @@ docker compose -f infra/docker-compose.dev.yml logs -f postgres
 ## Seguridad / alcance
 
 - Las credenciales aqu? listadas son solo para desarrollo local.
-- El cat?logo de proveedores ya tiene un primer adapter real de market data para Binance Spot REST.
+- El cat?logo de proveedores ya tiene market data REST y websocket para Binance.
 - Los dem?s adapters siguen siendo stubs hasta nuevos issues.

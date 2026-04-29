@@ -7,6 +7,7 @@ import { createMemoryMarketDataRepository } from './helpers/create-memory-market
 import { createMemoryProviderRepository } from './helpers/create-memory-provider-repository.js';
 import { createMemoryRefreshTokenRepository } from './helpers/create-memory-refresh-token-repository.js';
 import { createMemoryUserRepository } from './helpers/create-memory-user-repository.js';
+import WebSocket from 'ws';
 
 const testEnv = {
   NODE_ENV: 'test',
@@ -59,6 +60,64 @@ function createTestApp(overrides = {}) {
     marketDataRepository:
       overrides.marketDataRepository ?? createMemoryMarketDataRepository(),
     providerRegistry: overrides.providerRegistry ?? createProviderRegistry()
+  });
+}
+
+
+
+
+function waitForOpen(ws, timeoutMs = 1000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timed out while opening websocket'));
+    }, timeoutMs);
+
+    const handleOpen = () => {
+      cleanup();
+      resolve();
+    };
+
+    const handleError = (error) => {
+      cleanup();
+      reject(error instanceof Error ? error : new Error(String(error)));
+    };
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      ws.off('open', handleOpen);
+      ws.off('error', handleError);
+    };
+
+    ws.on('open', handleOpen);
+    ws.on('error', handleError);
+  });
+}
+
+function waitForJsonMessage(ws, predicate, timeoutMs = 1000) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('Timed out while waiting for websocket message'));
+    }, timeoutMs);
+
+    const handler = (data) => {
+      const payload = JSON.parse(data.toString());
+
+      if (!predicate(payload)) {
+        return;
+      }
+
+      cleanup();
+      resolve(payload);
+    };
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      ws.off('message', handler);
+    };
+
+    ws.on('message', handler);
   });
 }
 
@@ -169,7 +228,7 @@ test('provider catalog exposes capabilities and registry boundaries', async (t) 
 
   assert.equal(binance.capabilities.marketData, true);
   assert.equal(binance.capabilities.websocket, true);
-  assert.equal(binance.adapterStatus, 'stubbed');
+  assert.equal(binance.adapterStatus, 'ready');
   assert.equal(ibkr.capabilities.accountData, true);
   assert.equal(ibkr.capabilities.orderExecution, true);
 
@@ -541,4 +600,163 @@ test('binance market-data adapter maps exchangeInfo and klines responses', async
       }),
     /Binance does not support timeframe 2m/
   );
+});
+
+
+test('market-data websocket route multiplexes a single upstream stream and resyncs on reconnect', async (t) => {
+  const marketDataRepository = createMemoryMarketDataRepository();
+  let marketDataCalls = 0;
+  let websocketSubscriptions = 0;
+  let currentHandlers;
+
+  const fakeMarketDataAdapter = {
+    async getSymbols() {
+      return [];
+    },
+    async getCandles() {
+      marketDataCalls += 1;
+      await new Promise((resolve) => setTimeout(resolve, 0));
+      return [
+        {
+          symbol: 'BTCUSDT',
+          timeframe: '1m',
+          timestamp: 1710000000000,
+          open: 1,
+          high: 2,
+          low: 0.5,
+          close: marketDataCalls === 1 ? 1.5 : 1.75,
+          volume: 100 + marketDataCalls
+        }
+      ];
+    }
+  };
+
+  const fakeWebsocketAdapter = {
+    subscribeKlines({ onKline, onStatus, onError }) {
+      websocketSubscriptions += 1;
+      currentHandlers = { onKline, onStatus, onError };
+      queueMicrotask(() => {
+        onStatus({ state: 'connected', url: 'wss://example.test/ws' });
+      });
+      return {
+        close() {
+          websocketSubscriptions -= 1;
+        }
+      };
+    }
+  };
+
+  const providerRegistry = {
+    resolveAdapter(providerName, capability) {
+      assert.equal(providerName, 'binance');
+      if (capability === 'marketData') {
+        return fakeMarketDataAdapter;
+      }
+      if (capability === 'websocket') {
+        return fakeWebsocketAdapter;
+      }
+      throw new Error(`Unexpected capability: ${capability}`);
+    }
+  };
+
+  const app = await createTestApp({ marketDataRepository, providerRegistry });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  await app.ready();
+  await app.listen({ port: 0, host: '127.0.0.1' });
+  const address = app.server.address();
+  const streamUrl = `ws://127.0.0.1:${address.port}/ws/market-data?provider=binance&symbol=BTCUSDT&timeframe=1m`;
+
+  const wsA = new WebSocket(streamUrl);
+  const firstSnapshotPromise = waitForJsonMessage(wsA, (payload) => payload.type === 'snapshot');
+  await waitForOpen(wsA);
+  const firstSnapshot = await firstSnapshotPromise;
+  assert.equal(firstSnapshot.provider, 'binance');
+  assert.equal(firstSnapshot.candles.length, 1);
+  assert.equal(marketDataCalls, 1);
+
+  const wsB = new WebSocket(streamUrl);
+  const secondSnapshotPromise = waitForJsonMessage(wsB, (payload) => payload.type === 'snapshot');
+  await waitForOpen(wsB);
+  const secondSnapshot = await secondSnapshotPromise;
+  assert.equal(secondSnapshot.candles.length, 1);
+  assert.equal(websocketSubscriptions, 1);
+  assert.equal(marketDataCalls, 1);
+
+  const wsAKlinePromise = waitForJsonMessage(wsA, (payload) => payload.type === 'kline');
+  const wsBKlinePromise = waitForJsonMessage(wsB, (payload) => payload.type === 'kline');
+
+  currentHandlers.onKline({
+    provider: 'binance',
+    symbol: 'BTCUSDT',
+    timeframe: '1m',
+    candle: {
+      symbol: 'BTCUSDT',
+      timeframe: '1m',
+      timestamp: 1710000060000,
+      open: 1.5,
+      high: 2.5,
+      low: 1.2,
+      close: 2.0,
+      volume: 111
+    },
+    isClosed: false,
+    eventTime: 1710000060500,
+    closeTime: 1710000119999
+  });
+
+  const wsAKline = await wsAKlinePromise;
+  const wsBKline = await wsBKlinePromise;
+  assert.equal(wsAKline.candle.close, 2.0);
+  assert.equal(wsBKline.candle.close, 2.0);
+
+  const reconnectSnapshotPromise = waitForJsonMessage(
+    wsA,
+    (payload) =>
+      payload.type === 'snapshot' && payload.candles[0] && payload.candles[0].close === 1.75
+  );
+  currentHandlers.onStatus({ state: 'reconnected', url: 'wss://example.test/ws' });
+  const reconnectSnapshot = await reconnectSnapshotPromise;
+  assert.equal(reconnectSnapshot.candles[0].close, 1.75);
+  assert.equal(marketDataCalls, 2);
+
+  wsA.terminate();
+  wsB.terminate();
+  await app.server.closeAllConnections?.();
+});
+
+test('market-data websocket route rejects invalid subscriptions', async (t) => {
+  const app = await createTestApp({
+    providerRegistry: {
+      resolveAdapter() {
+        return {
+          async getSymbols() {
+            return [];
+          },
+          async getCandles() {
+            return [];
+          }
+        };
+      }
+    }
+  });
+
+  t.after(async () => {
+    await app.close();
+  });
+
+  await app.ready();
+  await app.listen({ port: 0, host: '127.0.0.1' });
+  const address = app.server.address();
+  const ws = new WebSocket(`ws://127.0.0.1:${address.port}/ws/market-data?provider=binance&symbol=BTCUSDT`);
+  const errorPayloadPromise = waitForJsonMessage(ws, (payload) => payload.type === 'error');
+  await waitForOpen(ws);
+  const errorPayload = await errorPayloadPromise;
+
+  assert.equal(errorPayload.code, 'validation_error');
+  ws.terminate();
+  await app.server.closeAllConnections?.();
 });

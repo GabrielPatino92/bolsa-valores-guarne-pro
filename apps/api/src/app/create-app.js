@@ -14,6 +14,7 @@ import { usersRoutes } from '../modules/users/routes.js';
 import { createPgProviderRepository } from '../modules/providers/repository.js';
 import { providersRoutes } from '../modules/providers/routes.js';
 import { marketDataRoutes } from '../modules/market-data/routes.js';
+import { marketDataRealtimeRoutes } from '../modules/market-data/websocket-routes.js';
 import {
   createPgMarketDataRepository,
   ensurePgMarketDataStorage
@@ -48,8 +49,14 @@ export async function createApp(options = {}) {
     options.providerRegistry ??
     createProviderRegistry({
       binance: {
-        baseUrl: env.binanceMarketDataBaseUrl,
-        timeoutMs: env.binanceMarketDataTimeoutMs
+        marketData: {
+          baseUrl: env.binanceMarketDataBaseUrl,
+          timeoutMs: env.binanceMarketDataTimeoutMs
+        },
+        websocket: {
+          baseUrl: env.binanceWebsocketBaseUrl,
+          reconnectDelayMs: env.binanceWebsocketReconnectDelayMs
+        }
       }
     });
 
@@ -79,6 +86,7 @@ export async function createApp(options = {}) {
   await app.register(marketDataRoutes, {
     prefix: `${env.apiPrefix}/market-data`
   });
+  await app.register(marketDataRealtimeRoutes);
 
   app.addHook('onClose', async () => {
     if (!options.pool && typeof pool.end === 'function') {

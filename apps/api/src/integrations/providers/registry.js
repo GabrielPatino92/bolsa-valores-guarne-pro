@@ -2,7 +2,9 @@ import { AppError } from '../../shared/errors/app-error.js';
 import { assertAccountAdapter } from './contracts/account-adapter.js';
 import { assertExecutionAdapter } from './contracts/execution-adapter.js';
 import { assertMarketDataAdapter } from './contracts/market-data-adapter.js';
+import { assertWebsocketAdapter } from './contracts/websocket-adapter.js';
 import { createBinanceMarketDataAdapter } from './providers/binance/market-data.js';
+import { createBinanceWebsocketAdapter } from './providers/binance/websocket.js';
 import { createCoinbaseMarketDataAdapter } from './providers/coinbase/market-data.js';
 import { createIbkrAccountAdapter } from './providers/ibkr/account.js';
 import { createIbkrExecutionAdapter } from './providers/ibkr/execution.js';
@@ -43,8 +45,13 @@ function buildDescriptor({
 }
 
 function createDefaultDescriptors(options = {}) {
+  const binanceOptions = options.binance ?? {};
   const binanceMarketData = assertMarketDataAdapter(
-    createBinanceMarketDataAdapter(options.binance ?? {}),
+    createBinanceMarketDataAdapter(binanceOptions.marketData ?? binanceOptions),
+    'binance'
+  );
+  const binanceWebsocket = assertWebsocketAdapter(
+    createBinanceWebsocketAdapter(binanceOptions.websocket ?? {}),
     'binance'
   );
   const okxMarketData = assertMarketDataAdapter(
@@ -71,8 +78,10 @@ function createDefaultDescriptors(options = {}) {
         paperTrading: true,
         websocket: true
       },
+      adapterStatus: 'ready',
       adapters: {
-        marketData: binanceMarketData
+        marketData: binanceMarketData,
+        websocket: binanceWebsocket
       }
     }),
     buildDescriptor({

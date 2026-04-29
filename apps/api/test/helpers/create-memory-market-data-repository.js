@@ -55,6 +55,15 @@ export function createMemoryMarketDataRepository(seed = {}) {
       return series.slice(0, limit).map(cloneCandle);
     },
 
+    async listLatestCandles({ providerName, symbol, timeframe, limit = 5 }) {
+      const key = makeSeriesKey({ providerName, symbol, timeframe });
+      const series = [...(candleStore.get(key) ?? [])].sort(
+        (left, right) => left.timestamp - right.timestamp
+      );
+
+      return series.slice(-limit).map(cloneCandle);
+    },
+
     async upsertCandles({ providerName, symbol, timeframe, candles }) {
       const key = makeSeriesKey({ providerName, symbol, timeframe });
       const current = candleStore.get(key) ?? [];

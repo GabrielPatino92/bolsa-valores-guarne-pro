@@ -118,6 +118,23 @@ export function createPgMarketDataRepository({ pool }) {
       return result.rows.map(mapCandleRow);
     },
 
+    async listLatestCandles({ providerName, symbol, timeframe, limit = 5 }) {
+      const result = await pool.query(
+        `
+          SELECT provider_name, symbol, timeframe, open_time, open, high, low, close, volume
+          FROM market_candles
+          WHERE provider_name = $1::provider_name
+            AND symbol = $2
+            AND timeframe = $3
+          ORDER BY open_time DESC
+          LIMIT $4
+        `,
+        [providerName, symbol, timeframe, limit]
+      );
+
+      return result.rows.map(mapCandleRow).reverse();
+    },
+
     async upsertCandles({ providerName, symbol, timeframe, candles }) {
       if (!Array.isArray(candles) || candles.length === 0) {
         return 0;

@@ -1,24 +1,6 @@
 import { AppError } from '../../../../shared/errors/app-error.js';
 import { createBinanceMarketDataClient } from './client.js';
-
-const BINANCE_TIMEFRAME_MAP = Object.freeze({
-  '1s': '1s',
-  '1m': '1m',
-  '3m': '3m',
-  '5m': '5m',
-  '15m': '15m',
-  '30m': '30m',
-  '1h': '1h',
-  '2h': '2h',
-  '4h': '4h',
-  '1D': '1d',
-  '1W': '1w',
-  '1M': '1M'
-});
-
-function resolveInterval(timeframe) {
-  return BINANCE_TIMEFRAME_MAP[timeframe] ?? null;
-}
+import { assertSupportedBinanceTimeframe } from './intervals.js';
 
 function mapSymbol(entry) {
   return {
@@ -42,23 +24,6 @@ function mapCandle(kline, { symbol, timeframe }) {
   };
 }
 
-function assertSupportedTimeframe(timeframe) {
-  const interval = resolveInterval(timeframe);
-
-  if (!interval) {
-    throw new AppError(`Binance does not support timeframe ${timeframe}`, {
-      statusCode: 400,
-      code: 'provider_timeframe_unsupported',
-      details: {
-        providerName: 'binance',
-        timeframe
-      }
-    });
-  }
-
-  return interval;
-}
-
 export function createBinanceMarketDataAdapter(options = {}) {
   const client = createBinanceMarketDataClient(options);
 
@@ -76,7 +41,7 @@ export function createBinanceMarketDataAdapter(options = {}) {
     },
 
     async getCandles({ symbol, timeframe, limit = 500, startTime, endTime }) {
-      const interval = assertSupportedTimeframe(timeframe);
+      const interval = assertSupportedBinanceTimeframe(timeframe);
 
       const payload = await client.request('/api/v3/klines', {
         symbol,
