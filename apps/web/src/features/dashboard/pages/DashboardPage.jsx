@@ -7,12 +7,12 @@ export default function DashboardPage() {
         <span className="kicker">Dashboard placeholder</span>
         <h1>Dashboard en espera del backend modular</h1>
         <p>
-          Aqu? vivir? la vista consolidada del usuario cuando el backend Node.js, PostgreSQL y JWT est?n estables.
+          Aquí vivirá la vista consolidada del usuario cuando el backend Node.js, PostgreSQL y JWT estén estables.
         </p>
       </section>
 
       <div className="card-grid">
-        <PlaceholderCard title="M?dulos previstos">
+        <PlaceholderCard title="Módulos previstos">
           <ul className="meta-list">
             <li>Resumen de cuenta y salud operativa.</li>
             <li>Estado de integraciones con brokers.</li>
@@ -20,7 +20,7 @@ export default function DashboardPage() {
           </ul>
         </PlaceholderCard>
 
-        <PlaceholderCard title="Dependencias arquitect?nicas">
+        <PlaceholderCard title="Dependencias arquitectónicas">
           <ul className="meta-list">
             <li>Issue #14 para el backend base.</li>
             <li>Issue #15 para auth y modelo de datos.</li>

@@ -1,6 +1,7 @@
 import PlaceholderCard from '@/shared/ui/PlaceholderCard.jsx';
 import BacktestingControls from '../components/BacktestingControls.jsx';
 import BacktestingStatus from '../components/BacktestingStatus.jsx';
+import CandlestickChart from '../components/CandlestickChart.jsx';
 import CandlesTable from '../components/CandlesTable.jsx';
 import { useBacktestingMarketData } from '../hooks/useBacktestingMarketData.js';
 
@@ -26,10 +27,10 @@ export default function BacktestingPage() {
   return (
     <div className="page-stack">
       <section className="page-hero">
-        <span className="kicker">Issue #22 ? frontend market data real</span>
+        <span className="kicker">Issue #30 · gráfico candlestick en backtesting</span>
         <h1>Backtesting conectado al backend real</h1>
         <p>
-          Esta pantalla ya consume hist?rico REST y stream realtime desde el backend provider-aware, sin hablar directo con Binance.
+          Esta pantalla ya consume histórico REST y stream realtime desde el backend provider-aware, sin hablar directo con Binance.
         </p>
       </section>
 
@@ -53,7 +54,7 @@ export default function BacktestingPage() {
       />
 
       {error ? (
-        <PlaceholderCard title="No se pudo cargar el market data" footer="El backend sigue siendo la ?nica fuente de verdad para esta pantalla.">
+        <PlaceholderCard title="No se pudo cargar el market data" footer="El backend sigue siendo la única fuente de verdad para esta pantalla.">
           <p>{error}</p>
           <button type="button" onClick={refreshHistory}>
             Reintentar
@@ -62,19 +63,27 @@ export default function BacktestingPage() {
       ) : null}
 
       {!error && isLoading ? (
-        <PlaceholderCard title="Cargando market data" footer="Primero hist?rico, luego stream realtime.">
-          <p>Consultando s?mbolos y velas desde el backend...</p>
+        <PlaceholderCard title="Cargando market data" footer="Primero histórico, luego stream realtime.">
+          <p>Consultando símbolos y velas desde el backend...</p>
         </PlaceholderCard>
       ) : null}
 
       {!error && !isLoading && hasEmptyState ? (
-        <PlaceholderCard title="Sin velas disponibles" footer="Ajusta s?mbolo o timeframe y vuelve a intentar.">
-          <p>El backend no devolvi? velas para la selecci?n actual.</p>
+        <PlaceholderCard title="Sin velas disponibles" footer="Ajusta símbolo o timeframe y vuelve a intentar.">
+          <p>El backend no devolvió velas para la selección actual.</p>
         </PlaceholderCard>
       ) : null}
 
       {!error && !hasEmptyState && candles.length > 0 ? (
-        <CandlesTable candles={candles} />
+        <>
+          <CandlestickChart
+            candles={candles}
+            symbol={selectedSymbol}
+            timeframe={selectedTimeframe}
+            streamStatus={streamStatus}
+          />
+          <CandlesTable candles={candles} />
+        </>
       ) : null}
     </div>
   );

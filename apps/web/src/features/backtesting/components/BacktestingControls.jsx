@@ -8,16 +8,23 @@ export default function BacktestingControls({
   onRefresh,
   disabled = false
 }) {
+  const hasSelectedSymbolOption = symbols.some(
+    (symbol) => symbol.symbol === selectedSymbol
+  );
+
   return (
     <section className="panel-card control-panel">
       <div className="control-grid">
         <label className="control-field">
-          <span>S?mbolo</span>
+          <span>Símbolo</span>
           <select
             value={selectedSymbol}
             onChange={(event) => onSymbolChange(event.target.value)}
             disabled={disabled || symbols.length === 0}
           >
+            {!hasSelectedSymbolOption && selectedSymbol ? (
+              <option value={selectedSymbol}>{selectedSymbol}</option>
+            ) : null}
             {symbols.map((symbol) => (
               <option key={symbol.symbol} value={symbol.symbol}>
                 {symbol.symbol}
@@ -27,7 +34,7 @@ export default function BacktestingControls({
         </label>
 
         <label className="control-field">
-          <span>Timeframe</span>
+          <span>Marco temporal</span>
           <select
             value={selectedTimeframe}
             onChange={(event) => onTimeframeChange(event.target.value)}
@@ -43,7 +50,7 @@ export default function BacktestingControls({
 
         <div className="control-actions">
           <button type="button" onClick={onRefresh} disabled={disabled || !selectedSymbol}>
-            Recargar hist?rico
+            Recargar histórico
           </button>
         </div>
       </div>

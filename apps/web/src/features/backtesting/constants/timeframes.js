@@ -5,7 +5,7 @@ export const BACKTESTING_TIMEFRAMES = [
   { id: '30m', label: '30 minutos' },
   { id: '1h', label: '1 hora' },
   { id: '4h', label: '4 horas' },
-  { id: '1D', label: '1 d?a' }
+  { id: '1D', label: '1 día' }
 ];
 
 export const DEFAULT_BACKTESTING_TIMEFRAME = BACKTESTING_TIMEFRAMES[0].id;

@@ -4,6 +4,28 @@ import BacktestingPage from '../src/features/backtesting/pages/BacktestingPage.j
 import { getMarketCandles, getMarketSymbols } from '@/services/market-data/api.js';
 import { connectMarketDataStream } from '@/services/market-data/ws.js';
 
+const setDataMock = vi.fn();
+const updateMock = vi.fn();
+const fitContentMock = vi.fn();
+
+vi.mock('lightweight-charts', () => ({
+  CandlestickSeries: Symbol('CandlestickSeries'),
+  ColorType: {
+    Solid: 'solid'
+  },
+  createChart: vi.fn(() => ({
+    addSeries: vi.fn(() => ({
+      setData: setDataMock,
+      update: updateMock
+    })),
+    applyOptions: vi.fn(),
+    remove: vi.fn(),
+    timeScale: vi.fn(() => ({
+      fitContent: fitContentMock
+    }))
+  }))
+}));
+
 vi.mock('@/services/market-data/api.js', () => ({
   getMarketSymbols: vi.fn(),
   getMarketCandles: vi.fn()
@@ -18,7 +40,7 @@ describe('BacktestingPage', () => {
     vi.clearAllMocks();
   });
 
-  it('loads backend symbols and candles, then updates rows with realtime kline messages', async () => {
+  it('loads backend symbols, renders the chart, preserves history on snapshot, and updates rows with realtime kline messages', async () => {
     let messageHandler;
 
     getMarketSymbols.mockResolvedValue({
@@ -34,7 +56,7 @@ describe('BacktestingPage', () => {
       provider: 'binance',
       symbol: 'BTCUSDT',
       timeframe: '1m',
-      count: 1,
+      count: 3,
       candles: [
         {
           symbol: 'BTCUSDT',
@@ -45,6 +67,26 @@ describe('BacktestingPage', () => {
           low: 0.5,
           close: 1.5,
           volume: 100
+        },
+        {
+          symbol: 'BTCUSDT',
+          timeframe: '1m',
+          timestamp: 1710000060000,
+          open: 1.5,
+          high: 2.2,
+          low: 1.4,
+          close: 2,
+          volume: 120
+        },
+        {
+          symbol: 'BTCUSDT',
+          timeframe: '1m',
+          timestamp: 1710000120000,
+          open: 2,
+          high: 2.5,
+          low: 1.8,
+          close: 2.1,
+          volume: 140
         }
       ]
     });
@@ -57,7 +99,9 @@ describe('BacktestingPage', () => {
     render(<BacktestingPage />);
 
     expect(screen.getByText(/cargando market data/i)).toBeTruthy();
+    expect(await screen.findByText(/gráfico de velas/i)).toBeTruthy();
     expect(await screen.findByText(/velas recientes/i)).toBeTruthy();
+    expect(screen.getByText(/velas: 3/i)).toBeTruthy();
 
     expect(getMarketSymbols).toHaveBeenCalledWith({ provider: 'binance' });
     expect(getMarketCandles).toHaveBeenCalledWith({
@@ -76,6 +120,21 @@ describe('BacktestingPage', () => {
 
     await act(async () => {
       messageHandler({
+        type: 'snapshot',
+        candles: [
+          {
+            symbol: 'BTCUSDT',
+            timeframe: '1m',
+            timestamp: 1710000120000,
+            open: 2,
+            high: 2.5,
+            low: 1.8,
+            close: 2.1,
+            volume: 140
+          }
+        ]
+      });
+      messageHandler({
         type: 'status',
         state: 'connected'
       });
@@ -84,10 +143,10 @@ describe('BacktestingPage', () => {
         candle: {
           symbol: 'BTCUSDT',
           timeframe: '1m',
-          timestamp: 1710000000000,
-          open: 1,
-          high: 2,
-          low: 0.5,
+          timestamp: 1710000120000,
+          open: 2,
+          high: 2.5,
+          low: 1.8,
           close: 2.75,
           volume: 155
         },
@@ -95,10 +154,11 @@ describe('BacktestingPage', () => {
       });
     });
 
-    expect(screen.getByText(/stream: conectado/i)).toBeTruthy();
+    expect(screen.getByText(/tiempo real: conectado/i)).toBeTruthy();
+    expect(screen.getByText(/velas: 3/i)).toBeTruthy();
     expect(screen.getByText('2.75')).toBeTruthy();
 
-    fireEvent.change(screen.getByLabelText(/timeframe/i), {
+    fireEvent.change(screen.getByLabelText(/marco temporal/i), {
       target: { value: '5m' }
     });
 

@@ -12,11 +12,7 @@ const HISTORY_LIMIT = 100;
 const MAX_VISIBLE_CANDLES = 200;
 
 function formatErrorMessage(error, fallbackMessage) {
-  return (
-    error?.response?.data?.error?.message ||
-    error?.message ||
-    fallbackMessage
-  );
+  return error?.response?.data?.error?.message || error?.message || fallbackMessage;
 }
 
 function mergeCandle(existingCandles, nextCandle) {
@@ -33,9 +29,16 @@ function mergeCandle(existingCandles, nextCandle) {
   return candles.slice(-MAX_VISIBLE_CANDLES);
 }
 
+function mergeCandles(existingCandles, nextCandles) {
+  return nextCandles.reduce(
+    (currentCandles, candle) => mergeCandle(currentCandles, candle),
+    existingCandles
+  );
+}
+
 export function useBacktestingMarketData() {
   const [symbols, setSymbols] = useState([]);
-  const [selectedSymbol, setSelectedSymbol] = useState('');
+  const [selectedSymbol, setSelectedSymbol] = useState(DEFAULT_SYMBOL);
   const [selectedTimeframe, setSelectedTimeframe] = useState(
     DEFAULT_BACKTESTING_TIMEFRAME
   );
@@ -84,7 +87,7 @@ export function useBacktestingMarketData() {
         }
 
         setError(
-          formatErrorMessage(loadError, 'No se pudieron cargar los s?mbolos disponibles.')
+          formatErrorMessage(loadError, 'No se pudieron cargar los símbolos disponibles.')
         );
       } finally {
         if (!isCancelled) {
@@ -148,7 +151,7 @@ export function useBacktestingMarketData() {
             }
 
             if (payload.type === 'snapshot') {
-              setCandles(payload.candles ?? []);
+              setCandles((current) => mergeCandles(current, payload.candles ?? []));
               setLastUpdatedAt(Date.now());
               return;
             }
@@ -161,7 +164,7 @@ export function useBacktestingMarketData() {
 
             if (payload.type === 'error') {
               setStreamStatus('error');
-              setStreamError(payload.message || 'El stream realtime devolvi? un error.');
+              setStreamError(payload.message || 'El stream realtime devolvió un error.');
             }
           },
           onError(streamFailure) {
@@ -185,7 +188,7 @@ export function useBacktestingMarketData() {
 
         setCandles([]);
         setError(
-          formatErrorMessage(loadError, 'No se pudieron cargar las velas hist?ricas.')
+          formatErrorMessage(loadError, 'No se pudieron cargar las velas históricas.')
         );
         setStreamStatus('error');
         setIsCandlesLoading(false);
@@ -204,7 +207,7 @@ export function useBacktestingMarketData() {
     setRefreshTick((current) => current + 1);
   }, []);
 
-  const isLoading = isSymbolsLoading || isCandlesLoading;
+  const isLoading = candles.length === 0 && (isSymbolsLoading || isCandlesLoading);
   const hasEmptyState = !isLoading && !error && candles.length === 0;
 
   return useMemo(

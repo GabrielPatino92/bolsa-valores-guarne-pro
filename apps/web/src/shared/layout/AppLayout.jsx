@@ -13,7 +13,7 @@ export default function AppLayout() {
       <header className="app-header">
         <div>
           <div className="app-title">Bolsa de Valores Guarne Pro</div>
-          <div className="app-subtitle">Frontend React + Vite + JavaScript en transici?n controlada</div>
+          <div className="app-subtitle">Frontend React + Vite + JavaScript en transición controlada</div>
         </div>
         <nav className="app-nav" aria-label="Primary navigation">
           {links.map((link) => (

@@ -17,7 +17,7 @@ export default function CandlesTable({ candles }) {
       <div className="table-header-row">
         <div>
           <h2>Velas recientes</h2>
-          <p className="app-subtitle">Hist?rico REST + actualizaci?n realtime desde el backend.</p>
+          <p className="app-subtitle">Histórico REST + actualización realtime desde el backend.</p>
         </div>
       </div>
 
@@ -25,12 +25,12 @@ export default function CandlesTable({ candles }) {
         <table className="candles-table">
           <thead>
             <tr>
-              <th>Timestamp</th>
-              <th>Open</th>
-              <th>High</th>
-              <th>Low</th>
-              <th>Close</th>
-              <th>Volume</th>
+              <th>Fecha y hora</th>
+              <th>Apertura</th>
+              <th>Máximo</th>
+              <th>Mínimo</th>
+              <th>Cierre</th>
+              <th>Volumen</th>
             </tr>
           </thead>
           <tbody>
