@@ -1,23 +1,81 @@
 import PlaceholderCard from '@/shared/ui/PlaceholderCard.jsx';
+import BacktestingControls from '../components/BacktestingControls.jsx';
+import BacktestingStatus from '../components/BacktestingStatus.jsx';
+import CandlesTable from '../components/CandlesTable.jsx';
+import { useBacktestingMarketData } from '../hooks/useBacktestingMarketData.js';
 
 export default function BacktestingPage() {
+  const {
+    provider,
+    symbols,
+    selectedSymbol,
+    selectedTimeframe,
+    timeframeOptions,
+    candles,
+    isLoading,
+    error,
+    streamError,
+    streamStatus,
+    lastUpdatedAt,
+    hasEmptyState,
+    setSelectedSymbol,
+    setSelectedTimeframe,
+    refreshHistory
+  } = useBacktestingMarketData();
+
   return (
     <div className="page-stack">
       <section className="page-hero">
-        <span className="kicker">Backtesting placeholder</span>
-        <h1>Backtesting desacoplado del frontend legacy</h1>
+        <span className="kicker">Issue #22 ? frontend market data real</span>
+        <h1>Backtesting conectado al backend real</h1>
         <p>
-          Esta ruta marca el destino funcional, pero no arrastra widgets heredados hasta que los contratos del dominio est?n claros.
+          Esta pantalla ya consume hist?rico REST y stream realtime desde el backend provider-aware, sin hablar directo con Binance.
         </p>
       </section>
 
-      <PlaceholderCard title="Principio de migraci?n" footer="Primero estructura sana, luego features reales.">
-        <ul className="meta-list">
-          <li>No portar componentes de charting por reflejo.</li>
-          <li>No asumir stores globales antes de validar casos de uso.</li>
-          <li>Entrar a datos reales solo despu?s del contrato OpenAPI.</li>
-        </ul>
-      </PlaceholderCard>
+      <BacktestingControls
+        symbols={symbols}
+        selectedSymbol={selectedSymbol}
+        selectedTimeframe={selectedTimeframe}
+        timeframeOptions={timeframeOptions}
+        onSymbolChange={setSelectedSymbol}
+        onTimeframeChange={setSelectedTimeframe}
+        onRefresh={refreshHistory}
+        disabled={isLoading && symbols.length === 0}
+      />
+
+      <BacktestingStatus
+        provider={provider}
+        streamStatus={streamStatus}
+        candlesCount={candles.length}
+        lastUpdatedAt={lastUpdatedAt}
+        streamError={streamError}
+      />
+
+      {error ? (
+        <PlaceholderCard title="No se pudo cargar el market data" footer="El backend sigue siendo la ?nica fuente de verdad para esta pantalla.">
+          <p>{error}</p>
+          <button type="button" onClick={refreshHistory}>
+            Reintentar
+          </button>
+        </PlaceholderCard>
+      ) : null}
+
+      {!error && isLoading ? (
+        <PlaceholderCard title="Cargando market data" footer="Primero hist?rico, luego stream realtime.">
+          <p>Consultando s?mbolos y velas desde el backend...</p>
+        </PlaceholderCard>
+      ) : null}
+
+      {!error && !isLoading && hasEmptyState ? (
+        <PlaceholderCard title="Sin velas disponibles" footer="Ajusta s?mbolo o timeframe y vuelve a intentar.">
+          <p>El backend no devolvi? velas para la selecci?n actual.</p>
+        </PlaceholderCard>
+      ) : null}
+
+      {!error && !hasEmptyState && candles.length > 0 ? (
+        <CandlesTable candles={candles} />
+      ) : null}
     </div>
   );
 }
